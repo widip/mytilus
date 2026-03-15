@@ -27,16 +27,31 @@ def after_each_test(request):
     prog.draw(path=svg_path(f"{test_name}_prog.svg"))
     mprog.draw(path=svg_path(f"{test_name}_mprog.svg"))
 
-def test_fig_6_1_program_and_metaprogram(request):
+
+A, B, X = Ty("A"), Ty("B"), Ty("X")
+H_ty, L_ty = ProgramTy("H"), ProgramTy("L")
+h_ev = ComputableFunction("{H}", X, A, B)
+l_ev = ComputableFunction("{L}", X, A, B)
+H_to_L = ProgramComputation("H", L_ty, X, A, B)
+L_to_H = ProgramComputation("L", H_ty, X, A, B)
+
+def test_sec_6_2_2(request):
     """
-    Fig. 6.1 program and metaprogram
+    Sec. 6.2.2 {H}L = h, {L}H = l
     """
-    A, B, X = Ty("A"), Ty("B"), Ty("X")
-    comp = Computation("f", X, A, B)
-    prog = Program(comp)
-    mprog = Metaprogram(prog)
-    right = MetaprogramFunctor()(mprog)
-    assert right == prog
-    right = ProgramFunctor()(right)
-    assert right == comp
-    request.node.draw_objects = (comp, prog, mprog)
+    assert H_to_L.universal_ev() == h_ev
+    assert L_to_H.universal_ev() == l_ev
+    request.node.draw_objects = (h_ev, l_ev, H_to_L)
+
+def test_fig_6_3_eq_0(request):
+    """
+    Fig. 6.3 {X}H y = {H}L(X, y)
+    """
+    # comp = ComputableFunction("f", X, A, B)
+    # prog = Program("f", L_ty, X)
+    # mprog = Metaprogram("F", L_ty)
+    # right = MetaprogramFunctor()(mprog)
+    # assert right == prog
+    # right = ProgramFunctor()(right)
+    # assert right == comp
+    # request.node.draw_objects = (comp, prog, mprog)

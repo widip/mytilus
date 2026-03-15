@@ -1,8 +1,11 @@
 from functools import partial
 from subprocess import CalledProcessError, run
+import subprocess
 
 from discopy.utils import tuplify, untuplify
 from discopy import closed, python
+
+from . import computer
 
 
 io_ty = closed.Ty("io")
@@ -52,26 +55,24 @@ def ar_mapping(ar):
         return partial(partial, run_native_subprocess_seq, ar)
     return partial(partial, run_native_subprocess_default, ar)
 
-SHELL_RUNNER = closed.Functor(
-    lambda ob: partial,
-    ar_mapping,
-    cod=closed.Category(python.Ty, python.Function))
 
 
-SHELL_COMPILER = closed.Functor(
-    lambda ob: ob,
-    lambda ar: {
-        # "ls": ar.curry().uncurry()
-    }.get(ar.name, ar),)
-    # TODO remove .inside[0] workaround
-    # lambda ar: ar)
 
-
-def compile_shell_program(diagram):
+class ShellRunner(computer.Functor):
     """
-    close input parameters (constants)
-    drop outputs matching input parameters
-    all boxes are io->[io]"""
-    # TODO compile sequences and parallels to evals
-    diagram = SHELL_COMPILER(diagram)
-    return diagram
+    Transforms a computer diagram into a runnable Python function of a subprocess pipeline.
+    Eq. 2.15: an X-natural family of surjections C(X × A, B) --→ C•(X,P) for each pair of computer.types A, B.
+    """
+    def __init__(self):
+        computer.Functor.__init__(
+            self,
+            lambda _: python.Ty,
+            ar_mapping,
+            cod=computer.Category(python.Ty, python.Function))
+
+    def __call__(self, other):
+        """subprocess.run(cmd=X, *A): B is the natural family of surjections."""
+        constants = tuple(x.name for x in other.dom)
+        return python.Function(
+            partial(subprocess.run, *constants),
+            dom=python.Ty, cod=python.Ty)

@@ -30,21 +30,31 @@ Ty.factory = closed.Ty
 
 
 @factory
-class Diagram(markov.Diagram):
+class Diagram(markov.Diagram, closed.Diagram):
     ty_factory = Ty
 
     def to_drawing(self):
         # Fix exponential type drawing recursion.
         return markov.Diagram.to_drawing(self, functor_factory=closed.Functor)
 
+
+class Category(markov.Category, closed.Diagram):
+    """2.5.1: A monoidal computer is a (symmetric, strict) monoidal category"""
+    ob, ar = Ty, Diagram
+
+
 class Functor(markov.Functor, closed.Functor):
     """
     Preserves markov, closed, and computer boxes.
     """
+    dom = cod = Category(Ty, Diagram)
+
     def __call__(self, other):
         if isinstance(other, Diagram):
             return other
-        return Functor.__call__(self, other)
+        if isinstance(other, (closed.Diagram, closed.Ty)):
+            return closed.Functor.__call__(self, other)
+        return markov.Functor.__call__(self, other)
 
 
 class Box(markov.Box, closed.Box, Diagram):
@@ -102,11 +112,6 @@ class Uncurry(monoidal.Bubble, Box):
         arg = box.bubble(dom=dom, cod=cod)
         monoidal.Bubble.__init__(self, arg, dom=dom, cod=cod, drawing_name="$\\Lambda^{-1}$")
         Box.__init__(self, f"uncurry({box.name})", dom, cod)
-
-
-class Category(markov.Category):
-    """2.5.1: A monoidal computer is a (symmetric, strict) monoidal category"""
-    ob, ar = Ty, Diagram
 
 
 def Id(x=Ty()):
