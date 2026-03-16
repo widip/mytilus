@@ -4,12 +4,11 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from yaml import YAMLError
 
-from discopy.closed import Id, Ty, Box
 from discopy.utils import tuplify, untuplify
 
 from .loader import repl_read
 from .files import diagram_draw, file_diagram
-from .widish import SHELL_RUNNER, compile_shell_program
+from .metaprog.widish import compile_shell_program
 
 
 # TODO watch functor ??
@@ -53,13 +52,7 @@ def shell_main(file_name, draw=True):
 
                 if draw:
                     diagram_draw(path, source_d)
-                # source_d = compile_shell_program(source_d)
-                # diagram_draw(Path(file_name+".2"), source_d)
-                # source_d = Spider(0, len(source_d.dom), Ty("io")) \
-                #     >> source_d \
-                #     >> Spider(len(source_d.cod), 1, Ty("io"))
-                # diagram_draw(path, source_d)
-                result_ev = SHELL_RUNNER(source_d)()
+                result_ev = compile_shell_program(source_d)("")
                 print(result_ev)
             except KeyboardInterrupt:
                 print()
@@ -76,8 +69,7 @@ def widish_main(file_name, draw):
     path = Path(file_name)
     if draw:
         diagram_draw(path, fd)
-    constants = tuple(x.name for x in fd.dom)
-    runner = SHELL_RUNNER(fd)(*constants)
+    runner = compile_shell_program(fd)
 
     run_res = runner("") if sys.stdin.isatty() else runner(sys.stdin.read())
 

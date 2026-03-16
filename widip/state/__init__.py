@@ -1,6 +1,6 @@
 """Chapter 7: Stateful computing."""
 
-from . import computer
+from ..comput import computer
 
 
 class Process(computer.Diagram):
@@ -8,10 +8,26 @@ class Process(computer.Diagram):
     Eq. 7.1: a process q : X x A -> X x B is paired from state update and output.
     """
 
-    def __init__(self, name, X: computer.Ty, A: computer.Ty, B: computer.Ty):
+    def __init__(
+        self,
+        name,
+        X: computer.Ty,
+        A: computer.Ty,
+        B: computer.Ty,
+        state_update_diagram=None,
+        output_diagram=None,
+    ):
         self.name, self.X, self.A, self.B = name, X, A, B
-        self.state_update_diagram = computer.Box(f"sta({name})", X @ A, X)
-        self.output_diagram = computer.Box(f"out({name})", X @ A, B)
+        self.state_update_diagram = (
+            state_update_diagram
+            if state_update_diagram is not None
+            else computer.Box(f"sta({name})", X @ A, X)
+        )
+        self.output_diagram = (
+            output_diagram
+            if output_diagram is not None
+            else computer.Box(f"out({name})", X @ A, B)
+        )
 
         diagram = (
             computer.Copy(X @ A),
@@ -32,9 +48,29 @@ class Execution(Process):
     Sec. 7.3: program execution is a process P x A -> P x B.
     """
 
-    def __init__(self, P: computer.ProgramTy, A: computer.Ty, B: computer.Ty):
-        self.universal_ev_diagram = computer.Computer(P, A, P @ B)
-        Process.__init__(self, "{}", P, A, B)
+    def __init__(
+        self,
+        P: computer.ProgramTy,
+        A: computer.Ty,
+        B: computer.Ty,
+        universal_ev_diagram=None,
+        state_update_diagram=None,
+        output_diagram=None,
+    ):
+        self.universal_ev_diagram = (
+            universal_ev_diagram
+            if universal_ev_diagram is not None
+            else computer.Computer(P, A, P @ B)
+        )
+        Process.__init__(
+            self,
+            "{}",
+            P,
+            A,
+            B,
+            state_update_diagram=state_update_diagram,
+            output_diagram=output_diagram,
+        )
 
     def universal_ev(self):
         """
@@ -103,3 +139,11 @@ def fixed_state(g: computer.Diagram):
     X = g.dom[:1]
     A = g.dom[1:]
     return computer.Copy(X) @ A >> X @ g
+
+
+from .loader import LoaderLanguage
+from .widish import ShellLanguage
+
+
+LOADER = LoaderLanguage()
+SHELL = ShellLanguage()

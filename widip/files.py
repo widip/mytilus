@@ -1,7 +1,6 @@
 import pathlib
 
-from discopy.closed import Ty, Diagram, Box, Id, Functor
-
+from .comput.computer import Box, Diagram
 from .loader import repl_read
 
 
@@ -19,8 +18,6 @@ def files_ar(ar: Box) -> Diagram:
 def file_diagram(file_name) -> Diagram:
     path = pathlib.Path(file_name)
     fd = repl_read(path.open())
-    # TODO TypeError: Expected closed.Diagram, got monoidal.Diagram instead
-    # fd = replace_id_f(path.stem)(fd)
     return fd
 
 def diagram_draw(path, fd):
@@ -28,5 +25,3 @@ def diagram_draw(path, fd):
             textpad=(0.3, 0.1),
             fontsize=12,
             fontsize_types=8)
-
-files_f = Functor(lambda x: Ty(""), files_ar)
