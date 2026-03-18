@@ -1,14 +1,13 @@
 """Diagram tests for Sec. 6.2.2 and Futamura projections."""
 
 from widip.comput import computer
+from widip.comput import python as comput_python
 from widip.metaprog.python import (
     PYTHON_COMPILER,
     PYTHON_COMPILER_GENERATOR,
     PYTHON_EVALUATOR_BOX,
-    PYTHON_INTERPRETER,
     PYTHON_INTERPRETER_BOX,
     PYTHON_RUNTIME,
-    PYTHON_SPECIALIZER,
     PYTHON_SPECIALIZER_BOX,
     compiler,
     compiler_generator,
@@ -17,32 +16,35 @@ from widip.metaprog.python import (
     eq_4,
     eq_5,
     first_futamura_projection,
-    python_object,
     sec_6_2_2_partial_application,
 )
+
+
+def closed_value(value, name, cod=comput_python.program_ty):
+    box = computer.Box(name, computer.Ty(), cod)
+    box.value = value
+    return box
 
 
 def eval_closed(diagram):
     return PYTHON_RUNTIME(diagram)()
 
 
-def test_runtime_uses_functor_diagram_transforms():
-    program = python_object(lambda static_input, runtime_input: static_input + runtime_input, "add")
-    static_input = python_object(7, "seven")
+def test_runtime_evaluates_equation():
+    program = closed_value(lambda static_input, runtime_input: static_input + runtime_input, "X")
+    static_input = closed_value(7, "y")
     equation = eq_2(program, static_input)
 
-    assert isinstance(PYTHON_SPECIALIZER, computer.Functor)
-    assert isinstance(PYTHON_INTERPRETER, computer.Functor)
     assert PYTHON_SPECIALIZER_BOX.dom == computer.Ty()
     assert PYTHON_INTERPRETER_BOX.dom == computer.Ty()
     assert isinstance(PYTHON_EVALUATOR_BOX, computer.Computer)
     assert PYTHON_EVALUATOR_BOX.dom == PYTHON_SPECIALIZER_BOX.cod @ PYTHON_SPECIALIZER_BOX.cod
-    assert PYTHON_RUNTIME.normalize(equation) == PYTHON_INTERPRETER(PYTHON_SPECIALIZER(equation))
+    assert eval_closed(equation)(5) == 12
 
 
 def test_sec_6_2_2_partial_application():
-    program = python_object(lambda static_input, runtime_input: static_input + runtime_input, "add")
-    static_input = python_object(7, "seven")
+    program = closed_value(lambda static_input, runtime_input: static_input + runtime_input, "X")
+    static_input = closed_value(7, "y")
     residual_from_section = sec_6_2_2_partial_application(program, static_input)
     residual_from_equation = eq_2(program, static_input)
     expected = (PYTHON_SPECIALIZER_BOX @ program >> PYTHON_EVALUATOR_BOX) @ static_input >> PYTHON_EVALUATOR_BOX
@@ -54,8 +56,8 @@ def test_sec_6_2_2_partial_application():
 
 
 def test_eq_3_is_specializer_self_application():
-    program = python_object(lambda static_input, runtime_input: f"{static_input}:{runtime_input}", "format")
-    static_input = python_object("alpha", "alpha")
+    program = closed_value(lambda static_input, runtime_input: f"{static_input}:{runtime_input}", "X")
+    static_input = closed_value("alpha", "y")
     left = eq_2(program, static_input)
     right = eq_3(program, static_input)
     expected_right = (
@@ -69,8 +71,8 @@ def test_eq_3_is_specializer_self_application():
 
 
 def test_tuple_data_stays_atomic_across_universal_evaluator_wires():
-    append_program = python_object(lambda xs, ys: xs + ys, "append")
-    static_tuple = python_object(("a", "a", "b"), "tuple_static")
+    append_program = closed_value(lambda xs, ys: xs + ys, "X")
+    static_tuple = closed_value(("a", "a", "b"), "y")
     residual_left = eval_closed(eq_2(append_program, static_tuple))
     residual_right = eval_closed(eq_3(append_program, static_tuple))
 
@@ -82,7 +84,7 @@ def test_first_projection_builds_c1_compiler():
     source_program = lambda runtime_input: runtime_input * 2 + 3
     compiler_c1 = eval_closed(first_futamura_projection(PYTHON_INTERPRETER_BOX))
     compiled_program = compiler_c1(source_program)
-    compiled_from_eq_2 = eval_closed(eq_2(PYTHON_INTERPRETER_BOX, python_object(source_program, "X")))
+    compiled_from_eq_2 = eval_closed(eq_2(PYTHON_INTERPRETER_BOX, closed_value(source_program, "y")))
 
     assert compiled_program(9) == source_program(9)
     assert compiled_program(9) == compiled_from_eq_2(9)
@@ -122,3 +124,15 @@ def test_exported_compiler_and_generator_constants():
 
     assert compiler_value(source_program)(1) == 101
     assert compiler_generator_value(interpreter)(source_program)(1) == 101
+
+
+def test_sec_6_2_2_accepts_arbitrary_static_input_type():
+    data_ty = computer.Ty("Data")
+    program = closed_value(lambda static_input, runtime_input: f"{static_input}|{runtime_input}", "X")
+    static_input = closed_value("alpha", "y", cod=data_ty)
+
+    residual = eq_2(program, static_input)
+
+    assert residual.dom == computer.Ty()
+    assert residual.cod == PYTHON_EVALUATOR_BOX.cod
+    assert eval_closed(residual)("beta") == "alpha|beta"
