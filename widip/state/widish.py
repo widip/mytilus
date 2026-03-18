@@ -1,13 +1,10 @@
 """Shell-specific stateful execution."""
 
 import subprocess
-from collections.abc import Callable
-
-from discopy import monoidal, python
 
 from ..comput import computer
 from ..comput import widish as shell_lang
-from .core import Execution, InputOutputMap, ProcessRunner
+from .core import Execution, InputOutputMap
 from ..wire import widish as shell_wire
 
 
@@ -55,63 +52,25 @@ def parallel_io_diagram(branches, next_temp):
     return result
 
 
-def _has_shell_bubble(diagram) -> bool:
-    """Detect whether a shell diagram still contains unspecialized bubbles."""
-    if isinstance(diagram, monoidal.Bubble):
-        return True
-    if not isinstance(diagram, computer.Diagram):
-        return False
-    return any(isinstance(layer[1], monoidal.Bubble) for layer in diagram.inside)
+def shell_program_runner(program):
+    """Compile one shell-language program to a Python text transformer."""
+    if isinstance(program, shell_lang.Empty):
+        return lambda stdin: stdin
+    if isinstance(program, shell_lang.Literal):
+        return lambda _stdin: program.text
+    if isinstance(program, shell_lang.Command):
+        def run(stdin: str) -> str:
+            completed = subprocess.run(
+                program.argv,
+                input=stdin,
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+            return completed.stdout
 
-
-class ShellRunner(ProcessRunner):
-    """Interpret stateful shell diagrams as Python callables on text streams."""
-
-    def __init__(self, specialize_shell):
-        self.specialize_shell = specialize_shell
-        ProcessRunner.__init__(self, self.ob_map)
-
-    @staticmethod
-    def ob_map(ob):
-        if (
-            isinstance(ob, computer.Ty)
-            and len(ob) == 1
-            and isinstance(ob.inside[0], computer.ProgramOb)
-        ):
-            return Callable
-        return str
-
-    def __call__(self, box):
-        if _has_shell_bubble(box):
-            return monoidal.Functor.__call__(self, self.specialize_shell(box))
-        return monoidal.Functor.__call__(self, box)
-
-    @staticmethod
-    def shell_program_runner(program):
-        """Compile one shell-language program to a Python text transformer."""
-        if isinstance(program, shell_lang.Empty):
-            return lambda stdin: stdin
-        if isinstance(program, shell_lang.Literal):
-            return lambda _stdin: program.text
-        if isinstance(program, shell_lang.Command):
-            def run(stdin: str) -> str:
-                completed = subprocess.run(
-                    program.argv,
-                    input=stdin,
-                    text=True,
-                    capture_output=True,
-                    check=True,
-                )
-                return completed.stdout
-
-            return run
-        raise TypeError(f"unsupported shell program: {program!r}")
-
-    def process_ar_map(self, box, dom, cod):
-        if isinstance(box, shell_lang.ShellProgram):
-            return python.Function(lambda: self.shell_program_runner(box), dom, cod)
-        return ProcessRunner.process_ar_map(self, box, dom, cod)
-
+        return run
+    raise TypeError(f"unsupported shell program: {program!r}")
 
 class ShellExecution(Execution):
     """Stateful shell evaluator P x io -> P x io."""

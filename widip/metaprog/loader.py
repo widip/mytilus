@@ -1,11 +1,15 @@
 """Loader-specific program transformations."""
 
-from . import Specializer
+from nx_yaml import nx_compose_all
+
+from .core import Specializer
+from .hif import HIFToLoader
 from ..comput import computer
 from ..comput import loader as loader_lang
 from ..comput import widish as shell_lang
 from ..state.core import map_process_box
 from ..state.widish import shell_stage as shell_io_stage
+from ..wire.hif import HyperGraph
 from ..wire import loader as loader_wire
 from ..wire import widish as shell_wire
 from .widish import Parallel, Pipeline
@@ -45,12 +49,8 @@ class LoaderToShell(Specializer):
         if isinstance(other, loader_wire.LoaderScalar):
             return _compile_scalar(other)
         if isinstance(other, loader_wire.LoaderSequence):
-            if other.tag is not None:
-                raise TypeError(f"tagged YAML sequences are unsupported: !{other.tag}")
             return Pipeline(tuple(self(stage) for stage in other.stages))
         if isinstance(other, loader_wire.LoaderMapping):
-            if other.tag is not None:
-                raise TypeError(f"tagged YAML mappings are unsupported: !{other.tag}")
             return Parallel(tuple(self(branch) for branch in other.branches))
         return Specializer.__call__(self, other)
 
@@ -61,3 +61,7 @@ class LoaderToShell(Specializer):
         if isinstance(ar, loader_lang.LoaderLiteral):
             return shell_lang.Literal(ar.text)
         return ar
+
+
+HIF_TO_LOADER = HIFToLoader()
+LOADER_TO_SHELL = LoaderToShell()

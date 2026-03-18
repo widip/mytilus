@@ -3,11 +3,13 @@ import sys
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from yaml import YAMLError
+from nx_yaml import nx_compose_all
 
 from discopy.utils import tuplify, untuplify
 
 from .files import diagram_draw, file_diagram
-from .metaprog import SHELL_TO_PYTHON, repl_read
+from .metaprog import SHELL_TO_PYTHON
+from .metaprog.loader import HIF_TO_LOADER, LOADER_TO_SHELL
 
 
 # TODO watch functor ??
@@ -42,7 +44,7 @@ def shell_main(file_name, draw=True):
             try:
                 prompt = f"--- !{file_name}\n"
                 source = input(prompt)
-                source_d = repl_read(source)
+                source_d = LOADER_TO_SHELL(HIF_TO_LOADER(nx_compose_all(source)))
                 # source_d.draw(
                 #         textpad=(0.3, 0.1),
                 #         fontsize=12,

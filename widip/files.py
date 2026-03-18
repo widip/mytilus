@@ -1,7 +1,9 @@
 import pathlib
 
+from nx_yaml import nx_compose_all
+
 from .comput.computer import Box, Diagram
-from .metaprog import repl_read
+from .metaprog.loader import HIF_TO_LOADER, LOADER_TO_SHELL
 
 
 def files_ar(ar: Box) -> Diagram:
@@ -17,7 +19,8 @@ def files_ar(ar: Box) -> Diagram:
 
 def file_diagram(file_name) -> Diagram:
     path = pathlib.Path(file_name)
-    fd = repl_read(path.open())
+    with path.open() as stream:
+        fd = LOADER_TO_SHELL(HIF_TO_LOADER(nx_compose_all(stream)))
     return fd
 
 def diagram_draw(path, fd):

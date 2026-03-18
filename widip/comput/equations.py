@@ -1,51 +1,50 @@
-"""Chapter 2 helper equations for the Run language."""
+"""Chapter 2 helper equations for evaluator-based program semantics."""
 
 from . import computer
 
 
-def run(G: computer.Diagram, A: computer.Ty, B: computer.Ty):
-    """Eq. 2.15: an X-natural family of surjections C(X × A, B) --→ C•(X,P)."""
-    del G
-    return computer.Eval(A, B)
+def run(program_ty: computer.ProgramTy, A: computer.Ty, B: computer.Ty):
+    """Eq. 2.15 in evaluator form: an evaluator for language ``program_ty``."""
+    return computer.Computer(program_ty, A, B)
 
 
-def eval_f(G: computer.Diagram):
-    """Eq. 2.15: evaluators as surjections from programs to computations."""
-    return computer.Eval(G.dom, G.cod)
+def eval_f(program_ty: computer.ProgramTy, A: computer.Ty, B: computer.Ty):
+    """Eq. 2.15: evaluator for computations on ``A -> B`` in language ``program_ty``."""
+    return computer.Computer(program_ty, A, B)
 
 
-def parametrize(g: computer.Diagram):
+def parametrize(g: computer.Diagram, program_ty: computer.ProgramTy):
     """
-    Eq. 2.2: present an X-parametrized computation as a program G:X⊸P.
+    Eq. 2.2 in evaluator form: turn a parametrized computation into program+eval.
     """
     G = g.curry(left=False)
     A = g.dom[1:]
-    return G >> computer.Eval(G.cod @ A >> g.cod)
+    return G >> computer.Computer(program_ty, A, g.cod)
 
 
-def reparametrize(g: computer.Diagram, s: computer.Diagram):
+def reparametrize(g: computer.Diagram, s: computer.Diagram, program_ty: computer.ProgramTy):
     """
-    Fig. 2.3: reparametrize x along s:Y⊸X to obtain a Y-indexed family.
-    """
-    A = g.dom[1:]
-    Gs = s @ A >> g.curry(left=False)
-    return Gs >> computer.Eval(Gs.cod @ A >> g.cod)
-
-
-def substitute(g: computer.Diagram, s: computer.Diagram):
-    """
-    Fig. 2.3: substitute for a along t:C→A while keeping the same parameter space.
+    Fig. 2.3 in evaluator form: reparametrize x along ``s:Y⊸X``.
     """
     A = g.dom[1:]
     Gs = s @ A >> g.curry(left=False)
-    return Gs >> computer.Eval(Gs.cod @ A >> g.cod)
+    return Gs >> computer.Computer(program_ty, A, g.cod)
+
+
+def substitute(g: computer.Diagram, s: computer.Diagram, program_ty: computer.ProgramTy):
+    """
+    Fig. 2.3 in evaluator form: substitute for ``a`` along ``s:C→A``.
+    """
+    A = g.dom[1:]
+    Gs = s @ A >> g.curry(left=False)
+    return Gs >> computer.Computer(program_ty, A, g.cod)
 
 
 def constant_a(f: computer.Diagram):
-    """Sec. 2.2.1.3 a) f:I×A→B. f(a) = {Φ_a}()."""
+    """Sec. 2.2.1.3 a) f:I×A→B."""
     return f.curry(0, left=False)
 
 
 def constant_b(f: computer.Diagram):
-    """Sec. 2.2.1.3 b) f:A×I→B. f(a) = {F}(a)."""
+    """Sec. 2.2.1.3 b) f:A×I→B."""
     return f.curry(1, left=False)

@@ -1,13 +1,17 @@
 """Shell-specific program transformations and interpreters."""
 
+from collections.abc import Callable
 from itertools import count
 
-from discopy import monoidal
+from discopy import monoidal, python
 
-from . import Specializer
+from .core import Specializer
+from . import core as metaprog_core
+from . import python as metaprog_python
 from ..comput import computer
 from ..comput import widish as shell_lang
-from ..state.widish import parallel_io_diagram
+from ..state import core as state_core
+from ..state.widish import parallel_io_diagram, shell_program_runner
 from ..wire import widish as shell_wire
 
 
@@ -51,6 +55,15 @@ def _specialize_shell(diagram, next_temp):
     return diagram
 
 
+def _has_shell_bubble(diagram) -> bool:
+    """Detect whether a shell diagram still contains unspecialized bubbles."""
+    if isinstance(diagram, monoidal.Bubble):
+        return True
+    if not isinstance(diagram, computer.Diagram):
+        return False
+    return any(isinstance(layer[1], monoidal.Bubble) for layer in diagram.inside)
+
+
 class ShellSpecializer(Specializer):
     """Lower shell bubbles to their executable wiring."""
 
@@ -74,6 +87,49 @@ class ShellSpecializer(Specializer):
     @staticmethod
     def ar_map(ar):
         return ar
+
+
+class ShellInterpreter(metaprog_core.Interpreter):
+    """Interpret shell diagrams as Python callables."""
+
+    def __init__(self, specialize_shell):
+        self.specialize_shell = specialize_shell
+        metaprog_core.Interpreter.__init__(
+            self,
+            ob=self.ob_map,
+            ar=self.ar_map,
+            dom=computer.Category(),
+            cod=python.Category(),
+        )
+
+    @staticmethod
+    def ob_map(ob):
+        if (
+            isinstance(ob, computer.Ty)
+            and len(ob) == 1
+            and isinstance(ob.inside[0], computer.ProgramOb)
+        ):
+            return Callable
+        return str
+
+    def __call__(self, other):
+        if _has_shell_bubble(other):
+            return monoidal.Functor.__call__(self, self.specialize_shell(other))
+        return monoidal.Functor.__call__(self, other)
+
+    def ar_map(self, box):
+        dom, cod = self(box.dom), self(box.cod)
+        projection = state_core.ProcessRunner.projection_ar_map(self, box, dom, cod)
+        structural = state_core.ProcessRunner.structural_ar_map(self, box, dom, cod)
+        if projection is not None:
+            return projection
+        if structural is not None:
+            return structural
+        if isinstance(box, shell_lang.ShellProgram):
+            return python.Function(lambda: shell_program_runner(box), dom, cod)
+        if isinstance(box, computer.Computer):
+            return python.Function(metaprog_python.apply_value, dom, cod)
+        raise TypeError(f"unsupported shell interpreter box: {box!r}")
 
 
 class Pipeline(monoidal.Bubble, computer.Box):
