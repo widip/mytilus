@@ -1,8 +1,116 @@
 """Shell-specific stateful execution."""
 
+import subprocess
+from collections.abc import Callable
+
+from discopy import monoidal, python
+
 from ..comput import computer
-from ..comput.widish import ShellOutput, ShellStateUpdate, io_ty, shell_program_ty
-from . import Execution, ProgramClosedCategory
+from ..comput import widish as shell_lang
+from .core import Execution, InputOutputMap, ProcessRunner
+from ..wire import widish as shell_wire
+
+
+def shell_stage(program):
+    """Run one primitive shell program on the standard shell stream."""
+    return program @ shell_lang.io_ty >> InputOutputMap(
+        "shell",
+        shell_lang.shell_program_ty,
+        shell_lang.io_ty,
+        shell_lang.io_ty,
+    )
+
+
+def _temp_path(next_temp) -> str:
+    """Allocate a deterministic temporary pathname for shell IO wiring."""
+    return f"/tmp/widip-{next(next_temp):04d}.tmp"
+
+
+def parallel_io_diagram(branches, next_temp):
+    """Lower shell-IO branching to file-backed tee/cat process wiring."""
+    branches = tuple(branches)
+    if not branches:
+        return shell_wire.shell_id()
+    if len(branches) == 1:
+        return branches[0]
+
+    input_path = _temp_path(next_temp)
+    output_paths = tuple(_temp_path(next_temp) for _ in branches)
+    stages = [shell_stage(shell_lang.Command(("tee", input_path)))]
+
+    for branch, output_path in zip(branches, output_paths):
+        stages.extend(
+            (
+                shell_stage(shell_lang.Command(("cat", input_path))),
+                branch,
+                shell_stage(shell_lang.Command(("tee", output_path))),
+            )
+        )
+
+    stages.append(shell_stage(shell_lang.Command(("cat",) + output_paths)))
+
+    result = shell_wire.shell_id()
+    for stage in stages:
+        result = stage if result == shell_wire.shell_id() else result >> stage
+    return result
+
+
+def _has_shell_bubble(diagram) -> bool:
+    """Detect whether a shell diagram still contains unspecialized bubbles."""
+    if isinstance(diagram, monoidal.Bubble):
+        return True
+    if not isinstance(diagram, computer.Diagram):
+        return False
+    return any(isinstance(layer[1], monoidal.Bubble) for layer in diagram.inside)
+
+
+class ShellRunner(ProcessRunner):
+    """Interpret stateful shell diagrams as Python callables on text streams."""
+
+    def __init__(self, specialize_shell):
+        self.specialize_shell = specialize_shell
+        ProcessRunner.__init__(self, self.ob_map)
+
+    @staticmethod
+    def ob_map(ob):
+        if (
+            isinstance(ob, computer.Ty)
+            and len(ob) == 1
+            and isinstance(ob.inside[0], computer.ProgramOb)
+        ):
+            return Callable
+        return str
+
+    def __call__(self, box):
+        if _has_shell_bubble(box):
+            return monoidal.Functor.__call__(self, self.specialize_shell(box))
+        return monoidal.Functor.__call__(self, box)
+
+    @staticmethod
+    def shell_program_runner(program):
+        """Compile one shell-language program to a Python text transformer."""
+        if isinstance(program, shell_lang.Empty):
+            return lambda stdin: stdin
+        if isinstance(program, shell_lang.Literal):
+            return lambda _stdin: program.text
+        if isinstance(program, shell_lang.Command):
+            def run(stdin: str) -> str:
+                completed = subprocess.run(
+                    program.argv,
+                    input=stdin,
+                    text=True,
+                    capture_output=True,
+                    check=True,
+                )
+                return completed.stdout
+
+            return run
+        raise TypeError(f"unsupported shell program: {program!r}")
+
+    def process_ar_map(self, box, dom, cod):
+        if isinstance(box, shell_lang.ShellProgram):
+            return python.Function(lambda: self.shell_program_runner(box), dom, cod)
+        return ProcessRunner.process_ar_map(self, box, dom, cod)
 
 
 class ShellExecution(Execution):
@@ -11,21 +119,8 @@ class ShellExecution(Execution):
     def __init__(self):
         Execution.__init__(
             self,
-            shell_program_ty,
-            io_ty,
-            io_ty,
-            universal_ev_diagram=computer.Computer(shell_program_ty, io_ty, shell_program_ty @ io_ty),
-            state_update_diagram=ShellStateUpdate(),
-            output_diagram=ShellOutput(),
+            "shell",
+            shell_lang.shell_program_ty,
+            shell_lang.io_ty,
+            shell_lang.io_ty,
         )
-
-
-class ShellLanguage(ProgramClosedCategory):
-    """Program-closed category with the shell as distinguished language."""
-
-    def __init__(self):
-        ProgramClosedCategory.__init__(self, shell_program_ty)
-
-    def execution(self, A: computer.Ty, B: computer.Ty):
-        del A, B
-        return ShellExecution()

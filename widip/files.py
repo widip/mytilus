@@ -1,7 +1,7 @@
 import pathlib
 
 from .comput.computer import Box, Diagram
-from .loader import repl_read
+from .metaprog import repl_read
 
 
 def files_ar(ar: Box) -> Diagram:

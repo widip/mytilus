@@ -1,7 +1,8 @@
 import pytest
 
-from widip.computer import *
-from widip.lang import *
+from widip.comput.computer import *
+from widip.comput.boxes import Data, Parallel, Partial, Sequential
+from widip.comput.compile import Compile
 from os import path
 
 SVG_ROOT_PATH = path.join("tests", "svg")
@@ -84,4 +85,3 @@ def test_eq_2_5_compile_partial_is_eval(request):
     compiled = compiler(right)
     assert compiled == left
     request.node.draw_objects = (left, right)
-

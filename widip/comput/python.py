@@ -3,6 +3,9 @@ from discopy import closed, markov, monoidal
 from . import computer
 
 
+program_ty = computer.ProgramTy("python")
+
+
 class PythonComputationCategory(closed.Category, markov.Category):
     """"""
 

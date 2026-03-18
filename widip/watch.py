@@ -6,9 +6,8 @@ from yaml import YAMLError
 
 from discopy.utils import tuplify, untuplify
 
-from .loader import repl_read
 from .files import diagram_draw, file_diagram
-from .metaprog.widish import compile_shell_program
+from .metaprog import SHELL_TO_PYTHON, repl_read
 
 
 # TODO watch functor ??
@@ -52,7 +51,7 @@ def shell_main(file_name, draw=True):
 
                 if draw:
                     diagram_draw(path, source_d)
-                result_ev = compile_shell_program(source_d)("")
+                result_ev = SHELL_TO_PYTHON(source_d)("")
                 print(result_ev)
             except KeyboardInterrupt:
                 print()
@@ -69,7 +68,7 @@ def widish_main(file_name, draw):
     path = Path(file_name)
     if draw:
         diagram_draw(path, fd)
-    runner = compile_shell_program(fd)
+    runner = SHELL_TO_PYTHON(fd)
 
     run_res = runner("") if sys.stdin.isatty() else runner(sys.stdin.read())
 

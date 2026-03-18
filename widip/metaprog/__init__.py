@@ -2,8 +2,11 @@
 Chapter 6. Computing programs.
 Metaprograms are programs that compute programs.
 """
+from nx_yaml import nx_compose_all
 
-from ..comput.computer import Box, Computer, ComputableFunction, Diagram, Program, ProgramTy, Ty
+from ..comput.computer import Box, Computer, ComputableFunction, Diagram, Functor, Program, ProgramTy, Ty
+from ..state.widish import ShellRunner
+from ..wire.hif import HyperGraph
 
 
 class Metaprogram(Box):
@@ -13,6 +16,34 @@ class Metaprogram(Box):
 
     def __init__(self, name, P: ProgramTy):
         Box.__init__(self, name, dom=Ty(), cod=P)
+
+
+class Specializer(Functor):
+    """A functorial metaprogram with unit parameter type."""
+
+    @staticmethod
+    def metaprogram_dom():
+        return Ty()
+
+    def __init__(self, ob=None, ar=None, *, dom=None, cod=None):
+        Functor.__init__(
+            self,
+            self.ob_map if ob is None else ob,
+            self.ar_map if ar is None else ar,
+            dom=Functor.dom if dom is None else dom,
+            cod=Functor.cod if cod is None else cod,
+        )
+
+    @staticmethod
+    def ob_map(ob):
+        return ob
+
+    @staticmethod
+    def ar_map(ar):
+        return ar
+
+    def specialize(self, *args, **kwargs):
+        return self(*args, **kwargs)
 
 
 class ProgramComputation(Diagram):
@@ -94,23 +125,22 @@ class MetaprogramFunctor:
         return other
 
 
-def __getattr__(name):
-    if name == "SHELL_SPECIALIZER":
-        from .widish import ShellSpecializer
+from .hif import HIFToLoader
+from .loader import LoaderToShell
+from .widish import ShellSpecializer
 
-        value = ShellSpecializer()
-        globals()[name] = value
-        return value
-    if name == "SHELL_RUNNER":
-        from .widish import ShellRunner
 
-        value = ShellRunner()
-        globals()[name] = value
-        return value
-    if name == "LOADER_TO_SHELL":
-        from .loader import LoaderToShell
+SHELL_SPECIALIZER = ShellSpecializer()
+SHELL_TO_PYTHON = ShellRunner(SHELL_SPECIALIZER)
+HIF_TO_LOADER = HIFToLoader()
+LOADER_TO_SHELL = LoaderToShell()
 
-        value = LoaderToShell()
-        globals()[name] = value
-        return value
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+def incidences_to_program(graph: HyperGraph):
+    """Turn an ``nx_yaml`` hypergraph into a loader-language diagram."""
+    return HIF_TO_LOADER(graph)
+
+
+def repl_read(stream):
+    """Parse a YAML stream and compile it to the shell backend."""
+    return LOADER_TO_SHELL(incidences_to_program(nx_compose_all(stream)))

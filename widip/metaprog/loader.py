@@ -1,18 +1,31 @@
 """Loader-specific program transformations."""
 
+from . import Specializer
 from ..comput import computer
 from ..comput import loader as loader_lang
 from ..comput import widish as shell_lang
-from ..state import loader as loader_state
+from ..state.core import map_process_box
+from ..state.widish import shell_stage as shell_io_stage
 from ..wire import loader as loader_wire
+from ..wire import widish as shell_wire
 from .widish import Parallel, Pipeline
 
 
-class LoaderToShell(computer.Functor):
-    """Compile loader programs and execution boxes into shell diagrams."""
+def _compile_scalar(node: loader_wire.LoaderScalar):
+    """Compile one YAML scalar node to the shell backend."""
+    if node.tag:
+        argv = (node.tag,) if not node.value else (node.tag, node.value)
+        return shell_io_stage(shell_lang.Command(argv))
+    if not node.value:
+        return shell_wire.shell_id()
+    return shell_io_stage(shell_lang.Literal(node.value))
+
+
+class LoaderToShell(Specializer):
+    """Compile loader nodes, programs, and execution boxes into shell diagrams."""
 
     def __init__(self):
-        computer.Functor.__init__(
+        Specializer.__init__(
             self,
             self.ob_map,
             self.ar_map,
@@ -29,22 +42,22 @@ class LoaderToShell(computer.Functor):
         return ob
 
     def __call__(self, other):
+        if isinstance(other, loader_wire.LoaderScalar):
+            return _compile_scalar(other)
         if isinstance(other, loader_wire.LoaderSequence):
+            if other.tag is not None:
+                raise TypeError(f"tagged YAML sequences are unsupported: !{other.tag}")
             return Pipeline(tuple(self(stage) for stage in other.stages))
         if isinstance(other, loader_wire.LoaderMapping):
+            if other.tag is not None:
+                raise TypeError(f"tagged YAML mappings are unsupported: !{other.tag}")
             return Parallel(tuple(self(branch) for branch in other.branches))
-        return computer.Functor.__call__(self, other)
+        return Specializer.__call__(self, other)
 
-    @staticmethod
-    def ar_map(ar):
+    def ar_map(self, ar):
+        ar = map_process_box(ar, self.ob_map)
         if isinstance(ar, loader_lang.LoaderEmpty):
             return shell_lang.Empty()
         if isinstance(ar, loader_lang.LoaderLiteral):
             return shell_lang.Literal(ar.text)
-        if isinstance(ar, loader_lang.LoaderCommand):
-            return shell_lang.Command(ar.argv)
-        if isinstance(ar, loader_state.LoaderStateUpdate):
-            return shell_lang.ShellStateUpdate()
-        if isinstance(ar, loader_state.LoaderOutput):
-            return shell_lang.ShellOutput()
         return ar

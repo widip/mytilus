@@ -1,6 +1,7 @@
 import pytest
+from nx_yaml import nx_compose_all
 
-from widip.computer import *
+from widip.comput.computer import *
 from widip.metaprog import *
 from os import path
 
@@ -35,23 +36,58 @@ l_ev = ComputableFunction("{L}", X, A, B)
 H_to_L = ProgramComputation("H", L_ty, X, A, B)
 L_to_H = ProgramComputation("L", H_ty, X, A, B)
 
+
 def test_sec_6_2_2(request):
     """
     Sec. 6.2.2 {H}L = h, {L}H = l
     """
-    assert H_to_L.universal_ev() == h_ev
-    assert L_to_H.universal_ev() == l_ev
+    program_f = ProgramFunctor()
     request.node.draw_objects = (h_ev, l_ev, H_to_L)
+    assert program_f(H_to_L) == h_ev
+    assert program_f(L_to_H) == l_ev
 
 def test_fig_6_3_eq_0(request):
     """
-    Fig. 6.3 {X}H y = {H}L(X, y)
+    Fig. 6.3 right-hand side: {H}L(X, y)
     """
-    # comp = ComputableFunction("f", X, A, B)
-    # prog = Program("f", L_ty, X)
-    # mprog = Metaprogram("F", L_ty)
-    # right = MetaprogramFunctor()(mprog)
-    # assert right == prog
-    # right = ProgramFunctor()(right)
-    # assert right == comp
-    # request.node.draw_objects = (comp, prog, mprog)
+    x_program = Program("X", H_ty, Ty())
+    interpreter = ProgramComputation("H", L_ty, H_ty, A, B)
+
+    transformed = x_program @ A >> ProgramFunctor()(interpreter)
+    expected = x_program @ A >> ComputableFunction("{H}", H_ty, A, B)
+
+    request.node.draw_objects = (expected, transformed, interpreter)
+    assert transformed == expected
+
+
+def test_fig_6_3_eq_1(request):
+    """
+    Fig. 6.3 right-hand side after one metaprogram rewrite: {pev(H)L X}L y
+    """
+    x_program = Program("X", H_ty, Ty())
+    compiler = MetaprogramComputation("H", L_ty, L_ty, H_ty, A, B)
+
+    transformed = x_program @ A >> MetaprogramFunctor()(compiler)
+    expected = (
+        x_program @ A
+        >> ProgramComputation("{H}", L_ty, Ty(), H_ty, L_ty) @ A
+        >> Computer(L_ty, A, B)
+    )
+
+    request.node.draw_objects = (expected, transformed, compiler)
+    assert MetaprogramFunctor()(compiler) == compiler.partial_ev()
+    assert transformed == expected
+
+
+def test_specializers_are_unit_metaprograms_with_partial_evaluators(request):
+    request.node.draw_objects = (h_ev, l_ev, H_to_L)
+
+    graph = nx_compose_all("a")
+
+    assert Specializer.metaprogram_dom() == Ty()
+    assert HIFToLoader.metaprogram_dom() == Ty()
+    assert LoaderToShell.metaprogram_dom() == Ty()
+    assert ShellSpecializer.metaprogram_dom() == Ty()
+    assert isinstance(LOADER_TO_SHELL, Specializer)
+    assert isinstance(SHELL_SPECIALIZER, Specializer)
+    assert HIFToLoader().specialize(graph) == HIF_TO_LOADER(graph)

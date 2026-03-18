@@ -1,7 +1,5 @@
 """Loader-language program constants."""
 
-import shlex
-
 from . import computer
 
 
@@ -15,37 +13,20 @@ class LoaderProgram(computer.Program):
         computer.Program.__init__(self, name, loader_program_ty, computer.Ty())
 
 
-class LoaderScalar(LoaderProgram):
-    """Closed loader program representing scalar content."""
-
-    def partial_apply(self, program: "LoaderCommand") -> "LoaderCommand":
-        raise NotImplementedError
+class LoaderScalarProgram(LoaderProgram):
+    """Closed loader program representing YAML scalar content."""
 
 
-class LoaderEmpty(LoaderScalar):
+class LoaderEmpty(LoaderScalarProgram):
     """Empty scalar in the loader language."""
 
     def __init__(self):
-        LoaderScalar.__init__(self, repr(""))
-
-    def partial_apply(self, program: "LoaderCommand") -> "LoaderCommand":
-        return LoaderCommand(program.argv)
+        LoaderScalarProgram.__init__(self, repr(""))
 
 
-class LoaderLiteral(LoaderScalar):
+class LoaderLiteral(LoaderScalarProgram):
     """Literal scalar in the loader language."""
 
     def __init__(self, text: str):
         self.text = text
-        LoaderScalar.__init__(self, repr(text))
-
-    def partial_apply(self, program: "LoaderCommand") -> "LoaderCommand":
-        return LoaderCommand(program.argv + (self.text,))
-
-
-class LoaderCommand(LoaderProgram):
-    """Loader-language command program before backend interpretation."""
-
-    def __init__(self, argv):
-        self.argv = tuple(argv)
-        LoaderProgram.__init__(self, shlex.join(self.argv))
+        LoaderScalarProgram.__init__(self, repr(text))

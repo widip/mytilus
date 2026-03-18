@@ -1,6 +1,5 @@
 """Shell-specific wire combinators and structural boxes."""
 
-from .functions import Box
 from .services import Copy as CopyService, Delete
 from .types import Id, Ty
 
@@ -33,13 +32,3 @@ def Copy(n: int):
     for copies in range(2, n):
         result = result >> io_wires(copies - 1) @ CopyService(io_ty)
     return result
-
-
-class Merge(Box):
-    """N-ary stream fan-in for the shell case study."""
-
-    def __init__(self, n: int):
-        if n <= 0:
-            raise ValueError("merge arity must be positive")
-        self.n = n
-        Box.__init__(self, f"merge[{n}]", io_wires(n), io_ty)

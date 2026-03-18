@@ -1,0 +1,92 @@
+- ?
+    ? !printf alpha
+    ?
+      - !printf beta
+      - !cat
+    ?
+      ? !printf gamma
+      ? !printf delta
+      : !cat
+  : !cat
+  ?
+    - !printf epsilon
+    - !cat
+    - !cat
+  : !cat
+  ?
+    ? !printf zeta
+    ?
+      - !printf eta
+      - !cat
+    ?
+      ? !printf theta
+      ? !printf iota
+      : !cat
+  : !cat
+  ?
+    -
+      ? !printf kappa
+      ? !printf lambda
+      : !cat
+    - !cat
+  : !cat
+- !cat
+- ? !cat
+  : !cat
+  ?
+    - !printf mu
+    -
+      ? !cat
+      ? !printf nu
+      ? !printf xi
+    - !cat
+  : !cat
+  ?
+    ? !printf omicron
+    ? !printf pi
+    ?
+      - !printf rho
+      - !cat
+  : !cat
+  ?
+    -
+      ? !printf sigma
+      ?
+        ? !printf tau
+        ? !printf upsilon
+        : !cat
+      : !cat
+    - !cat
+  : !cat
+- !cat
+- ? !cat
+  : !cat
+  ?
+    ? !printf phi
+    ?
+      - !printf chi
+      - !cat
+    ?
+      ? !printf psi
+      ? !printf omega
+      : !cat
+  : !cat
+  ?
+    -
+      ? !printf apex
+      ? !printf blaze
+      : !cat
+    - !cat
+  : !cat
+  ?
+    ? !printf crest
+    ?
+      - !printf drift
+      - !cat
+    ?
+      ? !printf ember
+      ? !printf flare
+      : !cat
+  : !cat
+- !cat
+- !cat
