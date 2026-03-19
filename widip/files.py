@@ -3,7 +3,8 @@ import pathlib
 from nx_yaml import nx_compose_all
 
 from .comput.computer import Box, Diagram
-from .metaprog.loader import HIF_TO_LOADER, LOADER_TO_SHELL
+from .metaprog.hif import HIFToLoader
+from .state.loader import LoaderToShell
 
 
 def files_ar(ar: Box) -> Diagram:
@@ -20,7 +21,7 @@ def files_ar(ar: Box) -> Diagram:
 def file_diagram(file_name) -> Diagram:
     path = pathlib.Path(file_name)
     with path.open() as stream:
-        fd = LOADER_TO_SHELL(HIF_TO_LOADER(nx_compose_all(stream)))
+        fd = LoaderToShell()(HIFToLoader()(nx_compose_all(stream)))
     return fd
 
 def diagram_draw(path, fd):

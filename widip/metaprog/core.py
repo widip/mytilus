@@ -29,25 +29,25 @@ class InterpreterBox(Metaprogram):
 class Specializer(Functor):
     """A functorial metaprogram with unit parameter type."""
 
-    @staticmethod
-    def metaprogram_dom():
+    def metaprogram_dom(self):
+        del self
         return Ty()
 
-    def __init__(self, ob=None, ar=None, *, dom=None, cod=None):
+    def __init__(self, *, dom=None, cod=None):
         Functor.__init__(
             self,
-            self.ob_map if ob is None else ob,
-            self.ar_map if ar is None else ar,
+            self.object,
+            self.ar_map,
             dom=Functor.dom if dom is None else dom,
             cod=Functor.cod if cod is None else cod,
         )
 
-    @staticmethod
-    def ob_map(ob):
+    def object(self, ob):
+        del self
         return ob
 
-    @staticmethod
-    def ar_map(ar):
+    def ar_map(self, ar):
+        del self
         return ar
 
     def specialize(self, *args, **kwargs):
@@ -57,25 +57,25 @@ class Specializer(Functor):
 class Interpreter(Functor):
     """A functorial interpreter with unit metaprogram domain."""
 
-    @staticmethod
-    def metaprogram_dom():
+    def metaprogram_dom(self):
+        del self
         return Ty()
 
-    def __init__(self, ob=None, ar=None, *, dom=None, cod=None):
+    def __init__(self, *, dom=None, cod=None):
         Functor.__init__(
             self,
-            self.ob_map if ob is None else ob,
-            self.ar_map if ar is None else ar,
+            self.object,
+            self.ar_map,
             dom=Functor.dom if dom is None else dom,
             cod=Functor.cod if cod is None else cod,
         )
 
-    @staticmethod
-    def ob_map(ob):
+    def object(self, ob):
+        del self
         return ob
 
-    @staticmethod
-    def ar_map(ar):
+    def ar_map(self, ar):
+        del self
         return ar
 
     def interpret(self, *args, **kwargs):

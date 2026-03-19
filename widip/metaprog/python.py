@@ -7,14 +7,13 @@ from functools import partial
 from discopy import python
 from discopy.utils import tuplify, untuplify
 
-from ..comput import ProgramClosedCategory
 from ..comput import computer
 from ..comput import python as comput_python
+from ..pcc import ProgramClosedCategory
 from . import core as metaprog_core
 
 
-PYTHON_OBJECT = comput_python.program_ty
-PYTHON_PROGRAMS = ProgramClosedCategory(PYTHON_OBJECT)
+PYTHON_PROGRAMS = ProgramClosedCategory(comput_python.program_ty)
 
 
 def _evaluator(A, B):
@@ -25,19 +24,19 @@ class PythonSpecializer(metaprog_core.SpecializerBox):
     """Native specializer metaprogram: ``S : I -> obj``."""
 
     def __init__(self):
-        metaprog_core.SpecializerBox.__init__(self, PYTHON_OBJECT, name="S")
+        metaprog_core.SpecializerBox.__init__(self, comput_python.program_ty, name="S")
 
 
 class PythonInterpreter(metaprog_core.InterpreterBox):
     """Native interpreter metaprogram: ``H : I -> obj``."""
 
     def __init__(self):
-        metaprog_core.InterpreterBox.__init__(self, PYTHON_OBJECT, name="H")
+        metaprog_core.InterpreterBox.__init__(self, comput_python.program_ty, name="H")
 
 
 PYTHON_SPECIALIZER_BOX = PythonSpecializer()
 PYTHON_INTERPRETER_BOX = PythonInterpreter()
-PYTHON_EVALUATOR_BOX = _evaluator(PYTHON_OBJECT, PYTHON_OBJECT)
+PYTHON_EVALUATOR_BOX = _evaluator(comput_python.program_ty, comput_python.program_ty)
 
 
 def _partial_evaluate(program, static_input):
@@ -60,6 +59,25 @@ def _apply_value(function, argument):
 def apply_value(function, argument):
     """Public evaluator application helper shared by runtime interpreters."""
     return _apply_value(function, argument)
+
+
+def runtime_value_box(value, *, name=None, cod=None):
+    """Build a closed box carrying a runtime value for PythonRuntime."""
+    cod = comput_python.program_ty if cod is None else cod
+    box = computer.Box(repr(value) if name is None else name, computer.Ty(), cod)
+    box.value = value
+    return box
+
+
+def map_structural_box(functor, box, dom):
+    """Map cartesian structural boxes to Python functions."""
+    if isinstance(box, computer.Copy):
+        return python.Function.copy(dom, n=2)
+    if isinstance(box, computer.Delete):
+        return python.Function.discard(dom)
+    if isinstance(box, computer.Swap):
+        return python.Function.swap(functor(box.left), functor(box.right))
+    return None
 
 
 sec_6_2_2_partial_application = partial(
@@ -120,14 +138,12 @@ class PythonRuntime(metaprog_core.Interpreter):
     def __init__(self):
         metaprog_core.Interpreter.__init__(
             self,
-            ob=self.ob_map,
-            ar=self.ar_map,
             dom=computer.Category(),
             cod=python.Category(),
         )
 
-    @staticmethod
-    def ob_map(_ob):
+    def object(self, ob):
+        del ob
         return object
 
     def ar_map(self, box):
@@ -154,12 +170,9 @@ class PythonRuntime(metaprog_core.Interpreter):
             return python.Function(lambda: _universal_evaluate, dom, cod)
         if isinstance(box, computer.Computer):
             return python.Function(apply_value, dom, cod)
-        if isinstance(box, computer.Copy):
-            return python.Function.copy(dom, n=2)
-        if isinstance(box, computer.Delete):
-            return python.Function.discard(dom)
-        if isinstance(box, computer.Swap):
-            return python.Function.swap(self(box.left), self(box.right))
+        structural = map_structural_box(self, box, dom)
+        if structural is not None:
+            return structural
         raise TypeError(f"unsupported Python metaprogram box: {box!r}")
 
 

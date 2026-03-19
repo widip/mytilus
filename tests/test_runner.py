@@ -5,8 +5,10 @@ from pathlib import Path
 import pytest
 from nx_yaml import nx_compose_all
 
-from widip.metaprog import LOADER_TO_SHELL, SHELL_TO_PYTHON, incidences_to_program
-from widip.metaprog.widish import ShellSpecializer
+from widip.metaprog.hif import HIFToLoader
+from widip.state.loader import LoaderToShell
+from widip.state.python import SHELL_INTERPRETER
+from widip.state.widish import ShellSpecializer
 
 
 FIXTURE_DIR = Path("tests/widish")
@@ -32,6 +34,8 @@ def normalize_svg(svg_text: str) -> str:
 
 @pytest.mark.parametrize("path", case_paths(), ids=lambda path: path.name)
 def test_shell_runner_files(path, tmp_path):
+    hif_to_loader = HIFToLoader()
+    loader_to_shell = LoaderToShell()
     yaml_path = path.with_suffix(".yaml")
     stdin_path = path.with_suffix(".in")
     stdout_path = path.with_suffix(".out")
@@ -45,15 +49,15 @@ def test_shell_runner_files(path, tmp_path):
     assert mprog_svg_path.exists()
 
     yaml_text = yaml_path.read_text()
-    mprog = incidences_to_program(nx_compose_all(yaml_text))
-    prog = ShellSpecializer()(LOADER_TO_SHELL(mprog))
+    mprog = hif_to_loader(nx_compose_all(yaml_text))
+    prog = ShellSpecializer()(loader_to_shell(mprog))
 
     actual_mprog_svg_path = tmp_path / f"{path.name}.mprog.svg"
     actual_prog_svg_path = tmp_path / f"{path.name}.prog.svg"
     mprog.draw(path=str(actual_mprog_svg_path))
     prog.draw(path=str(actual_prog_svg_path))
 
-    program = SHELL_TO_PYTHON(prog)
+    program = SHELL_INTERPRETER(prog)
 
     assert program(stdin_path.read_text()) == stdout_path.read_text()
     assert normalize_svg(actual_prog_svg_path.read_text()) == normalize_svg(prog_svg_path.read_text())

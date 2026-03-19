@@ -30,10 +30,11 @@ def test_fig_2_7_compile_sequential_to_left_side(request):
     Fig. 2.7 sequential equation:
     """
     A, B, C = Ty("A"), Ty("B"), Ty("C")
-    F = Box("F", A, B << A)
-    G = Box("G", B, C << B)
-    left = G @ F @ A >> (C << B) @ Eval(B << A) >> Eval(C << B)
-    right = Sequential(F, G)
+    P = ProgramTy("P")
+    F = Program("F", P, Ty())
+    G = Program("G", P, Ty())
+    left = G @ F @ A >> Id(P) @ Computer(P, A, B) >> Computer(P, B, C)
+    right = Sequential(F, G, A, B, C, P)
 
     compiler = Compile()
     compiled = compiler(right)
@@ -48,17 +49,17 @@ def test_fig_2_7_compile_parallel_to_left_side(request):
     right side is `Parallel(A@U, B@V)`.
     """
     A, U, B, V = Ty("A"), Ty("U"), Ty("B"), Ty("V")
-    F = Box("F", Ty(), B << A)
-    G = Box("G", Ty(), V << U)
-    right = Parallel(F, G)
+    P = ProgramTy("P")
+    F = Program("F", P, Ty())
+    G = Program("G", P, Ty())
+    right = Parallel(F, G, A, U, B, V, P)
     compiler = Compile()
     left = (
         F @ G @ A @ U
-        >> ((B << A) @ Swap(V << U, A) @ U)
-        >> (Eval(B << A) @ Eval(V << U))
+        >> (Id(P) @ Swap(P, A) @ U)
+        >> (Computer(P, A, B) @ Computer(P, U, V))
     )
 
-    # (left @ (Eval(B << A) @ Eval(V << U))).draw()
     compiled = compiler(right)
 
     assert compiled == left
@@ -66,7 +67,7 @@ def test_fig_2_7_compile_parallel_to_left_side(request):
 
 def test_eq_2_6_compile_data_is_identity(request):
     """Eq. 2.6: uncurrying quoted data compiles to its uncurried form (box @ Id) >> Eval."""
-    right = Data("A")
+    right = Data("A", ProgramTy("P"))
     left = Id("A")
     compiler = Compile()
     compiled = compiler(right)
@@ -78,9 +79,10 @@ def test_eq_2_6_compile_data_is_identity(request):
 def test_eq_2_5_compile_partial_is_eval(request):
     """Eq. 2.5: uncurrying `[]` compiles to direct evaluator on `X @ A`."""
     A, B, X = Ty("A"), Ty("B"), Ty("X")
-    gamma = Box("gamma", Ty(), B << X @ A)
-    left = gamma @ X @ A >> Eval(gamma.cod)
-    right = Partial(gamma)
+    P = ProgramTy("P")
+    gamma = Program("gamma", P, Ty())
+    left = gamma @ X @ A >> Computer(P, X @ A, B)
+    right = Partial(gamma, X, A, B, P)
     compiler = Compile()
     compiled = compiler(right)
     assert compiled == left

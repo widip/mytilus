@@ -2,7 +2,10 @@ import pytest
 from nx_yaml import nx_compose_all
 
 from widip.comput.computer import *
-from widip.metaprog import *
+from widip.metaprog import SHELL_SPECIALIZER
+from widip.metaprog.core import MetaprogramComputation, MetaprogramFunctor, ProgramComputation, ProgramFunctor, Specializer
+from widip.metaprog.hif import HIFToLoader
+from widip.state.loader import LoaderToShell
 from os import path
 
 
@@ -83,11 +86,12 @@ def test_specializers_are_unit_metaprograms_with_partial_evaluators(request):
     request.node.draw_objects = (h_ev, l_ev, H_to_L)
 
     graph = nx_compose_all("a")
+    loader_to_shell = LoaderToShell()
 
-    assert Specializer.metaprogram_dom() == Ty()
-    assert HIFToLoader.metaprogram_dom() == Ty()
-    assert LoaderToShell.metaprogram_dom() == Ty()
-    assert ShellSpecializer.metaprogram_dom() == Ty()
-    assert isinstance(LOADER_TO_SHELL, Specializer)
+    assert Specializer().metaprogram_dom() == Ty()
+    assert HIFToLoader().metaprogram_dom() == Ty()
+    assert loader_to_shell.metaprogram_dom() == Ty()
+    assert SHELL_SPECIALIZER.metaprogram_dom() == Ty()
+    assert isinstance(loader_to_shell, Specializer)
     assert isinstance(SHELL_SPECIALIZER, Specializer)
-    assert HIFToLoader().specialize(graph) == HIF_TO_LOADER(graph)
+    assert HIFToLoader().specialize(graph) == HIFToLoader()(graph)

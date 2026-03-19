@@ -1,9 +1,9 @@
 from discopy import python
 
-from widip.comput import LOADER, MonoidalComputer, ProgramClosedCategory, SHELL
 from widip.comput import computer
 from widip.comput.computer import Box, ComputableFunction, Computer, Copy, Program, ProgramTy, Ty
 from widip.comput.widish import io_ty
+from widip.pcc import LOADER, MonoidalComputer, ProgramClosedCategory, SHELL
 from widip.state import (
     Execution,
     InputOutputMap,
@@ -11,13 +11,11 @@ from widip.state import (
     StateUpdateMap,
     execute,
     fixed_state,
-    loader_output,
-    loader_state_update,
-    shell_output,
-    shell_state_update,
     simulate,
 )
-from widip.state.core import ProcessRunner
+from widip.state.loader import LoaderExecution
+from widip.state.widish import ShellExecution
+from widip.state.python import ProcessRunner
 from widip.wire.loader import loader_stream_ty
 
 
@@ -78,7 +76,7 @@ def test_sec_7_3_program_execution_is_stateful():
 
     assert execution.dom == P @ A
     assert execution.cod == P @ B
-    assert execution.universal_ev() == Computer(P, A, P @ B)
+    assert execution.universal_ev() == fixed_state(Computer(P, A, B))
     assert execution.state_update_diagram() == StateUpdateMap("{}", P, A)
     assert execution.output_diagram() == InputOutputMap("{}", P, A, B)
     assert execution.state_update_diagram().cod == P
@@ -101,7 +99,7 @@ def test_execution_universal_evaluator_is_overrideable_method():
 def test_process_runner_interprets_generic_state_projections():
     class DummyRunner(ProcessRunner):
         def __init__(self):
-            ProcessRunner.__init__(self, lambda _ob: object)
+            ProcessRunner.__init__(self)
 
         def process_ar_map(self, box, dom, cod):
             return python.Function(lambda *_xs: None, dom, cod)
@@ -117,7 +115,7 @@ def test_process_runner_interprets_generic_state_projections():
 def test_process_runner_interprets_generic_structural_boxes():
     class DummyRunner(ProcessRunner):
         def __init__(self):
-            ProcessRunner.__init__(self, lambda _ob: object)
+            ProcessRunner.__init__(self)
 
         def process_ar_map(self, box, dom, cod):
             return python.Function(lambda *_xs: None, dom, cod)
@@ -130,14 +128,14 @@ def test_process_runner_interprets_generic_structural_boxes():
 
 
 def test_loader_and_shell_projections_live_in_state():
-    assert loader_state_update() == LOADER.execution(
+    assert LoaderExecution().state_update_diagram() == LOADER.execution(
         loader_stream_ty, loader_stream_ty
     ).state_update_diagram()
-    assert loader_output() == LOADER.execution(
+    assert LoaderExecution().output_diagram() == LOADER.execution(
         loader_stream_ty, loader_stream_ty
     ).output_diagram()
-    assert shell_state_update() == SHELL.execution(io_ty, io_ty).state_update_diagram()
-    assert shell_output() == SHELL.execution(io_ty, io_ty).output_diagram()
+    assert ShellExecution().state_update_diagram() == SHELL.execution(io_ty, io_ty).state_update_diagram()
+    assert ShellExecution().output_diagram() == SHELL.execution(io_ty, io_ty).output_diagram()
 
 
 def test_sec_7_4_fixed_state_lifts_a_function_to_a_process():
@@ -158,7 +156,7 @@ def test_sec_7_4_execute_uses_stateful_execution():
         P,
         A,
         B,
-    )
+    ).specialize()
     assert q.dom == X @ A
     assert q.cod == P @ B
 
@@ -174,7 +172,7 @@ def test_sec_8_3_program_closed_category_chooses_a_language_type():
     assert low_level.program_ty == L_ty
     assert high_level.evaluator(A, B) == Computer(H_ty, A, B)
     assert low_level.evaluator(A, B) == Computer(L_ty, A, B)
-    assert high_level.execution(A, B).universal_ev() == Computer(H_ty, A, H_ty @ B)
-    assert low_level.execution(A, B).universal_ev() == Computer(L_ty, A, L_ty @ B)
+    assert high_level.execution(A, B).universal_ev() == fixed_state(Computer(H_ty, A, B))
+    assert low_level.execution(A, B).universal_ev() == fixed_state(Computer(L_ty, A, B))
     assert computer_category.ob == high_level.ob == low_level.ob
     assert computer_category.ar == high_level.ar == low_level.ar

@@ -1,9 +1,18 @@
-from widip.comput import SHELL
 from widip.comput.computer import Ty
-from widip.comput.widish import Command, Literal, ShellProgram, io_ty, shell_program_ty
-from widip.metaprog import SHELL_TO_PYTHON
-from widip.metaprog.widish import Parallel, Pipeline, ShellSpecializer, parallel
-from widip.state.widish import ShellExecution
+from widip.comput import python as comput_python
+from widip.comput.widish import Command, Empty, Literal, ShellProgram, io_ty, shell_program_ty
+from widip.metaprog import python as metaprog_python
+from widip.pcc import SHELL
+from widip.state import core as state_core
+from widip.state.python import SHELL_INTERPRETER, SHELL_PROGRAM_TO_PYTHON
+from widip.state.widish import (
+    Parallel,
+    Pipeline,
+    ShellExecution,
+    ShellSpecializer,
+    parallel,
+    shell_program_runner,
+)
 from widip.wire.widish import Copy
 
 
@@ -30,7 +39,7 @@ def test_sh_command_runs_through_shell_runner():
     execution = SHELL.execution(io_ty, io_ty).output_diagram()
     program = Command(["sh", "-c", "read line; printf 'shell:%s' \"$line\"", "sh"]) @ io_ty >> execution
 
-    assert SHELL_TO_PYTHON(program)("world\n") == "shell:world"
+    assert SHELL_INTERPRETER(program)("world\n") == "shell:world"
 
 
 def test_shell_language_chooses_shell_program_type_and_execution():
@@ -74,7 +83,7 @@ def test_sequence_bubble_specializes_to_pipeline():
     assert bubble.specialize() == first >> second
 
 
-def test_mapping_bubble_specializes_to_primitive_command_diagram():
+def test_mapping_bubble_specializes_to_parallel_shell_bubble():
     execution = SHELL.execution(io_ty, io_ty).output_diagram()
     branches = (
         Literal("a") @ io_ty >> execution,
@@ -85,10 +94,11 @@ def test_mapping_bubble_specializes_to_primitive_command_diagram():
     specialized = bubble.specialize()
     names = box_names(specialized)
 
+    assert isinstance(specialized, Parallel)
     assert specialized.dom == io_ty
     assert specialized.cod == io_ty
-    assert any(name.startswith("('tee', '/tmp/widip-") for name in names)
-    assert any(name.startswith("('cat', '/tmp/widip-") for name in names)
+    assert not any(name.startswith("('tee',") for name in names)
+    assert not any(name.startswith("('cat', '/tmp/widip-") for name in names)
     assert "merge[3]" not in names
     assert "∆" not in names
 
@@ -102,7 +112,7 @@ def test_discorun_parallel_example_runs():
             Command(["wc", "-l"]) @ io_ty >> execution,
         )
     )
-    assert SHELL_TO_PYTHON(program)("a\nx\n") == "a\nx\n1\n2\n"
+    assert SHELL_INTERPRETER(program)("a\nx\n") == "a\nx\n1\n2\n"
 
 
 def test_parallel_preserves_argv_literals_without_shell_reparsing():
@@ -114,10 +124,10 @@ def test_parallel_preserves_argv_literals_without_shell_reparsing():
         )
     )
 
-    assert SHELL_TO_PYTHON(program)("") == "a|bc&d"
+    assert SHELL_INTERPRETER(program)("") == "a|bc&d"
 
 
-def test_parallel_specializer_inlines_native_command_diagram():
+def test_parallel_specializer_preserves_parallel_shell_bubble():
     execution = SHELL.execution(io_ty, io_ty).output_diagram()
     program = Parallel(
         (
@@ -128,18 +138,55 @@ def test_parallel_specializer_inlines_native_command_diagram():
     specialized = ShellSpecializer()(program)
     names = box_names(specialized)
 
-    assert any(name.startswith("('tee', '/tmp/widip-") for name in names)
-    assert any(name.startswith("('cat', '/tmp/widip-") for name in names)
+    assert isinstance(specialized, Parallel)
+    assert not any(name.startswith("('tee',") for name in names)
+    assert not any(name.startswith("('cat', '/tmp/widip-") for name in names)
     assert "merge[2]" not in names
     assert "∆" not in names
-    assert SHELL_TO_PYTHON(program)("") == "leftright"
+    assert SHELL_INTERPRETER(program)("") == "leftright"
 
 
 def test_stateful_shell_execution_preserves_program_state():
     program = Command(["printf", "hello"])
-    runner = SHELL_TO_PYTHON(program @ io_ty >> SHELL.execution(io_ty, io_ty))
+    runner = SHELL_INTERPRETER(program @ io_ty >> SHELL.execution(io_ty, io_ty))
     state, output = runner("")
 
     assert callable(state)
     assert state("") == "hello"
     assert output == "hello"
+
+
+def test_shell_to_python_program_maps_shell_scalars_to_python_program_boxes():
+    transform = SHELL_PROGRAM_TO_PYTHON
+    source_boxes = (Empty(), Literal("literal"), Command(["printf", "x"]))
+
+    for source in source_boxes:
+        mapped = transform(source)
+        assert mapped.dom == Ty()
+        assert mapped.cod == comput_python.program_ty
+        assert callable(mapped.value)
+        assert mapped.value("stdin\n") == shell_program_runner(source)("stdin\n")
+
+
+def test_shell_to_python_program_maps_shell_evaluator_box():
+    transform = SHELL_PROGRAM_TO_PYTHON
+    evaluator = SHELL.evaluator(io_ty, io_ty)
+
+    mapped = transform(evaluator)
+
+    assert mapped == metaprog_python.PYTHON_PROGRAMS.evaluator(io_ty, io_ty)
+
+
+def test_shell_to_python_program_maps_process_projection_boxes():
+    transform = SHELL_PROGRAM_TO_PYTHON
+    state_update = state_core.StateUpdateMap("shell", shell_program_ty, io_ty)
+    output = state_core.InputOutputMap("shell", shell_program_ty, io_ty, io_ty)
+
+    mapped_state_update = transform(state_update)
+    mapped_output = transform(output)
+
+    assert mapped_state_update.X == comput_python.program_ty
+    assert mapped_state_update.A == io_ty
+    assert mapped_output.X == comput_python.program_ty
+    assert mapped_output.A == io_ty
+    assert mapped_output.B == io_ty

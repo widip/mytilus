@@ -8,8 +8,9 @@ from nx_yaml import nx_compose_all
 from discopy.utils import tuplify, untuplify
 
 from .files import diagram_draw, file_diagram
-from .metaprog import SHELL_TO_PYTHON
-from .metaprog.loader import HIF_TO_LOADER, LOADER_TO_SHELL
+from .metaprog.hif import HIFToLoader
+from .state.loader import LoaderToShell
+from .state.python import SHELL_INTERPRETER
 
 
 # TODO watch functor ??
@@ -38,13 +39,15 @@ def watch_main():
     return observer
 
 def shell_main(file_name, draw=True):
+    hif_to_loader = HIFToLoader()
+    loader_to_shell = LoaderToShell()
     try:
         while True:
             observer = watch_main()
             try:
                 prompt = f"--- !{file_name}\n"
                 source = input(prompt)
-                source_d = LOADER_TO_SHELL(HIF_TO_LOADER(nx_compose_all(source)))
+                source_d = loader_to_shell(hif_to_loader(nx_compose_all(source)))
                 # source_d.draw(
                 #         textpad=(0.3, 0.1),
                 #         fontsize=12,
@@ -53,7 +56,7 @@ def shell_main(file_name, draw=True):
 
                 if draw:
                     diagram_draw(path, source_d)
-                result_ev = SHELL_TO_PYTHON(source_d)("")
+                result_ev = SHELL_INTERPRETER(source_d)("")
                 print(result_ev)
             except KeyboardInterrupt:
                 print()
@@ -70,7 +73,7 @@ def widish_main(file_name, draw):
     path = Path(file_name)
     if draw:
         diagram_draw(path, fd)
-    runner = SHELL_TO_PYTHON(fd)
+    runner = SHELL_INTERPRETER(fd)
 
     run_res = runner("") if sys.stdin.isatty() else runner(sys.stdin.read())
 
