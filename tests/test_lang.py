@@ -42,6 +42,13 @@ def test_sh_command_runs_through_shell_runner():
     assert SHELL_INTERPRETER(program)("world\n") == "shell:world"
 
 
+def test_tagged_mapping_style_command_substitution_runs_in_argv():
+    execution = SHELL.execution(io_ty, io_ty).output_diagram()
+    program = Command(["echo", "Hello", "World", Command(["echo", "Foo"]), "!"]) @ io_ty >> execution
+
+    assert SHELL_INTERPRETER(program)("") == "Hello World Foo !\n"
+
+
 def test_shell_language_chooses_shell_program_type_and_execution():
     execution = SHELL.execution(io_ty, io_ty)
     assert SHELL.program_ty == shell_program_ty
@@ -113,6 +120,34 @@ def test_discorun_parallel_example_runs():
         )
     )
     assert SHELL_INTERPRETER(program)("a\nx\n") == "a\nx\n1\n2\n"
+
+
+def test_pipeline_copy_replays_prefix_command_per_parallel_branch(tmp_path):
+    execution = SHELL.execution(io_ty, io_ty).output_diagram()
+    counter = tmp_path / "counter.txt"
+    counter.write_text("0")
+    increment_script = (
+        "data=$(cat); "
+        "count=$(cat \"$1\"); "
+        "count=$((count+1)); "
+        "printf '%s' \"$count\" > \"$1\"; "
+        "printf '%s' \"$data\""
+    )
+    prefix = Command(["sh", "-c", increment_script, "sh", str(counter)]) @ io_ty >> execution
+    program = Pipeline(
+        (
+            prefix,
+            Parallel(
+                (
+                    Command(["cat"]) @ io_ty >> execution,
+                    Command(["cat"]) @ io_ty >> execution,
+                )
+            ),
+        )
+    )
+
+    assert SHELL_INTERPRETER(program)("hello") == "hellohello"
+    assert counter.read_text() == "2"
 
 
 def test_parallel_preserves_argv_literals_without_shell_reparsing():

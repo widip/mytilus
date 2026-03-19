@@ -8,6 +8,25 @@ from .core import Execution
 from ..wire import widish as shell_wire
 
 
+def _resolve_command_substitution(argument, stdin: str) -> str:
+    """Evaluate one command-substitution argument."""
+    if isinstance(argument, shell_lang.Command):
+        # Shell command substitution strips trailing newlines.
+        return shell_program_runner(argument)(stdin).rstrip("\n")
+    if isinstance(argument, shell_lang.Literal):
+        return argument.text
+    if isinstance(argument, shell_lang.Empty):
+        return ""
+    if not isinstance(argument, str):
+        raise TypeError(f"unsupported command argument type: {argument!r}")
+    return argument
+
+
+def _resolve_command_argv(argv, stdin: str) -> tuple[str, ...]:
+    """Resolve a shell command argv tuple to plain subprocess arguments."""
+    return tuple(_resolve_command_substitution(argument, stdin) for argument in argv)
+
+
 def parallel_io_diagram(branches):
     """Lower shell-IO branching to structural shell parallel composition."""
     branches = tuple(branches)
@@ -27,7 +46,7 @@ def shell_program_runner(program):
     if isinstance(program, shell_lang.Command):
         def run(stdin: str) -> str:
             completed = subprocess.run(
-                program.argv,
+                _resolve_command_argv(program.argv, stdin),
                 input=stdin,
                 text=True,
                 capture_output=True,

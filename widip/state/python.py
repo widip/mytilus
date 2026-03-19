@@ -15,13 +15,42 @@ from .widish import Pipeline as ShellPipeline
 from .widish import ShellSpecializer, shell_program_runner
 
 
-def _has_shell_bubble(diagram) -> bool:
-    """Detect whether a shell diagram still contains unspecialized bubbles."""
-    if isinstance(diagram, monoidal.Bubble):
-        return True
-    if not isinstance(diagram, computer.Diagram):
-        return False
-    return any(isinstance(layer[1], monoidal.Bubble) for layer in diagram.inside)
+_PATHS_ATTR = "_widip_runtime_paths"
+
+
+def _runner_paths(runner):
+    """Return execution paths carried by one interpreted shell stage."""
+    paths = getattr(runner, _PATHS_ATTR, None)
+    if paths is None:
+        return ((runner,),)
+    return paths
+
+
+def _compose_paths(prefixes, suffixes):
+    """Compose two path sets by Cartesian product."""
+    return tuple(prefix + suffix for prefix in prefixes for suffix in suffixes)
+
+
+def _run_paths(paths, stdin):
+    """Execute all independent pipelines sequentially and concatenate outputs."""
+    outputs = []
+    for path in paths:
+        output = stdin
+        for stage in path:
+            output = stage(output)
+        outputs.append(output)
+    if not outputs:
+        return stdin
+    if len(outputs) == 1:
+        return outputs[0]
+    return "".join(outputs)
+
+
+def _path_runner(paths, dom, cod):
+    """Build a Python runner while preserving expanded pipeline-path metadata."""
+    function = python.Function(lambda stdin, _paths=paths: _run_paths(_paths, stdin), dom, cod)
+    function.__dict__[_PATHS_ATTR] = paths
+    return function
 
 
 class ShellToPythonProgram(state_core.ProcessSimulation):
@@ -88,34 +117,27 @@ class ShellInterpreter(ProcessRunner, metaprog_core.Interpreter):
         return str
 
     def __call__(self, other):
-        if _has_shell_bubble(other):
-            return monoidal.Functor.__call__(self, self.specialize_shell(other))
         return monoidal.Functor.__call__(self, other)
 
     def process_ar_map(self, box, dom, cod):
         if isinstance(box, ShellPipeline):
-            stages = tuple(self(stage) for stage in box.stages)
-
-            def run(stdin):
-                output = stdin
-                for stage in stages:
-                    output = stage(output)
-                return output
-
-            return python.Function(run, dom, cod)
+            paths = ((),)
+            for stage in (self(stage) for stage in box.stages):
+                paths = _compose_paths(paths, _runner_paths(stage))
+            return _path_runner(paths, dom, cod)
         if isinstance(box, ShellParallel):
-            branches = tuple(self(branch) for branch in box.branches)
-
-            def run(stdin):
-                if not branches:
-                    return stdin
-                if len(branches) == 1:
-                    return branches[0](stdin)
-                return "".join(branch(stdin) for branch in branches)
-
-            return python.Function(run, dom, cod)
+            branch_paths = tuple(
+                path
+                for branch in (self(branch) for branch in box.branches)
+                for path in _runner_paths(branch)
+            )
+            if not branch_paths:
+                branch_paths = ((),)
+            return _path_runner(branch_paths, dom, cod)
         if isinstance(box, (shell_lang.ShellProgram, computer.Computer)):
-            return self.python_runtime(self.program_functor(box))
+            runner = self.python_runtime(self.program_functor(box))
+            runner.__dict__[_PATHS_ATTR] = ((runner,),)
+            return runner
         raise TypeError(f"unsupported shell interpreter box: {box!r}")
 
 

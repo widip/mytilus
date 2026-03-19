@@ -53,6 +53,42 @@ class LoaderToShell(ProcessSimulation):
             return Parallel(tuple(self(branch) for branch in other.branches))
         return ProcessSimulation.__call__(self, other)
 
+    def compile_command_argument(self, argument):
+        """Compile one loader scalar argument to a shell argv item."""
+        if isinstance(argument, str):
+            return argument
+        if not isinstance(argument, loader_wire.LoaderScalar):
+            raise TypeError(f"unsupported command argument: {argument!r}")
+        if argument.tag:
+            if isinstance(argument.value, tuple):
+                argv = (
+                    argument.tag,
+                    *(self.compile_command_argument(value) for value in argument.value),
+                )
+            else:
+                argv = (
+                    (argument.tag,)
+                    if not argument.value
+                    else (argument.tag, self.compile_command_argument(argument.value))
+                )
+            return shell_lang.Command(argv)
+        if isinstance(argument.value, tuple):
+            raise TypeError(f"untagged argv tuple is unsupported: {argument.value!r}")
+        if not isinstance(argument.value, str):
+            raise TypeError(f"untagged scalar argument must be a string: {argument.value!r}")
+        return argument.value
+
+    def command_argv(self, node: loader_wire.LoaderScalar):
+        """Build argv for a tagged loader scalar."""
+        if isinstance(node.value, tuple):
+            return (
+                node.tag,
+                *(self.compile_command_argument(value) for value in node.value),
+            )
+        if not node.value:
+            return (node.tag,)
+        return (node.tag, self.compile_command_argument(node.value))
+
     def compile_scalar(self, node: loader_wire.LoaderScalar):
         """Compile one YAML scalar node to the shell backend."""
         execution = SHELL.execution(
@@ -60,10 +96,7 @@ class LoaderToShell(ProcessSimulation):
             shell_lang.io_ty,
         ).output_diagram()
         if node.tag:
-            if isinstance(node.value, tuple):
-                argv = (node.tag, *node.value)
-            else:
-                argv = (node.tag,) if not node.value else (node.tag, node.value)
+            argv = self.command_argv(node)
             return shell_lang.Command(argv) @ shell_lang.io_ty >> execution
         if isinstance(node.value, tuple):
             raise TypeError(f"untagged argv tuple is unsupported: {node.value!r}")

@@ -5,18 +5,31 @@ from ..wire.hif import HyperGraph, hif_edge_incidences, hif_node, hif_node_incid
 from ..wire.loader import LoaderMapping, LoaderScalar, LoaderSequence, loader_id, pipeline
 
 
+def _mapping_key_command_arg(key_node):
+    """Compile one mapping key to an argv argument for tagged mappings."""
+    if not isinstance(key_node, LoaderScalar):
+        return None
+    if not isinstance(key_node.value, str):
+        return None
+    if key_node.tag is None:
+        return key_node.value
+    # Tagged scalar keys are command-substitution arguments.
+    return LoaderScalar(key_node.value, key_node.tag)
+
+
 def _mapping_command_args(entries):
     """Return argv pieces for tagged scalar mappings, else ``None``."""
     argv = []
     for key_node, value_node in entries:
-        if not isinstance(key_node, LoaderScalar) or key_node.tag is not None:
-            return None
         if not isinstance(value_node, LoaderScalar) or value_node.tag is not None:
             return None
-        if not isinstance(key_node.value, str) or not isinstance(value_node.value, str):
+        key_arg = _mapping_key_command_arg(key_node)
+        if key_arg is None:
             return None
-        if key_node.value:
-            argv.append(key_node.value)
+        if not isinstance(value_node.value, str):
+            return None
+        if key_arg:
+            argv.append(key_arg)
         if value_node.value:
             argv.append(value_node.value)
     return tuple(argv)
@@ -126,7 +139,7 @@ class HIFToLoader(HIFSpecializer):
                     command_args = _mapping_command_args(value)
                     if command_args is not None:
                         return LoaderScalar(command_args, tag)
-                branches = tuple(pipeline((key, entry_value)) for key, entry_value in value)
+                branches = tuple(LoaderSequence((key, entry_value)) for key, entry_value in value)
                 return LoaderMapping(branches, tag=tag)
             case _:
                 raise ValueError(f"unsupported YAML node kind: {kind!r}")

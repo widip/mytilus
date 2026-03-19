@@ -9,6 +9,7 @@ from widip.metaprog.hif import HIFToLoader
 from widip.pcc import SHELL
 from widip.state.core import InputOutputMap, StateUpdateMap
 from widip.state.loader import LoaderExecution, LoaderToShell
+from widip.state.python import SHELL_INTERPRETER
 from widip.state.widish import Parallel, Pipeline
 from widip.wire.hif import HyperGraph
 from widip.wire.loader import LoaderMapping, LoaderScalar, LoaderSequence, loader_stream_ty
@@ -108,6 +109,24 @@ def test_loader_tagged_mapping_of_scalars_is_command():
     assert LoaderToShell()(tagged_program) == Command(["echo", "foo", "bar"]) @ io_ty >> execution
 
 
+def test_loader_tagged_mapping_supports_command_substitution_keys():
+    program = HIFToLoader()(nx_compose_all(Path("examples/hello-world-map.yaml").read_text()))
+
+    assert isinstance(program, LoaderScalar)
+    assert program.tag == "echo"
+    assert program.value[:2] == ("Hello", "World")
+    assert isinstance(program.value[2], LoaderScalar)
+    assert program.value[2].tag == "echo"
+    assert program.value[2].value == "Foo"
+    assert program.value[3] == "!"
+
+
+def test_loader_tagged_mapping_command_substitution_runs():
+    program = LoaderToShell()(HIFToLoader()(nx_compose_all(Path("examples/hello-world-map.yaml").read_text())))
+
+    assert SHELL_INTERPRETER(program)("") == "Hello World Foo !\n"
+
+
 def test_loader_tagged_mapping_with_non_scalar_value_stays_mapping():
     tagged_program = HIFToLoader()(nx_compose_all("!echo\n? foo: !wc -c\n"))
 
@@ -117,23 +136,14 @@ def test_loader_tagged_mapping_with_non_scalar_value_stays_mapping():
 
 def test_loader_shell_case_study_is_mapping_bubble():
     execution = SHELL.execution(io_ty, io_ty).output_diagram()
-    expected = Parallel(
+    expected = (Command(["cat", "examples/shell.yaml"]) @ io_ty >> execution) >> Parallel(
         (
-            (Command(["cat", "examples/shell.yaml"]) @ io_ty >> execution)
-            >> Parallel(
-                (
-                    (Command(["wc", "-c"]) @ io_ty >> execution),
-                    Parallel(
-                        (
-                            (Command(["grep", "grep"]) @ io_ty >> execution)
-                            >> (Command(["wc", "-c"]) @ io_ty >> execution),
-                        )
-                    ),
-                    (Command(["tail", "-2"]) @ io_ty >> execution),
-                )
-            ),
+            (Command(["wc", "-c"]) @ io_ty >> execution),
+            (Command(["grep", "grep"]) @ io_ty >> execution)
+            >> (Command(["wc", "-c"]) @ io_ty >> execution),
+            (Command(["tail", "-2"]) @ io_ty >> execution),
         )
     )
     diagram = LoaderToShell()(HIFToLoader()(nx_compose_all(Path("examples/shell.yaml").read_text())))
     assert isinstance(diagram, Parallel)
-    assert diagram == expected
+    assert diagram.specialize() == expected
