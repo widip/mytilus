@@ -12,7 +12,7 @@ loader_stream_ty = Ty("yaml_stream")
 class LoaderScalar(Box):
     """Atomic YAML scalar node in the loader language."""
 
-    def __init__(self, value: str, tag: str | None = None):
+    def __init__(self, value: str | tuple[str, ...], tag: str | None = None):
         self.value = value
         self.tag = tag
         if tag:

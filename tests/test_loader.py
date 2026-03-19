@@ -28,13 +28,13 @@ def test_loader_scalar_program_is_functorial():
     assert compiled == Literal("scalar")
 
 
-def test_loader_translation_preserves_tagged_mapping_nodes():
+def test_loader_translation_flattens_tagged_scalar_mapping_into_argv():
     graph = nx_compose_all("!echo\n? scalar\n")
     program = HIFToLoader()(graph)
 
-    assert isinstance(program, LoaderMapping)
+    assert isinstance(program, LoaderScalar)
     assert program.tag == "echo"
-    assert len(program.branches) == 1
+    assert program.value == ("scalar",)
 
 
 def test_loader_translation_uses_hif_metaprogram():
@@ -98,13 +98,21 @@ def test_loader_tagged_sequence_compiles_like_untagged_sequence():
     assert LoaderToShell()(tagged_program) == LoaderToShell()(untagged_program)
 
 
-def test_loader_tagged_mapping_compiles_like_untagged_mapping():
+def test_loader_tagged_mapping_of_scalars_is_command():
+    execution = SHELL.execution(io_ty, io_ty).output_diagram()
     tagged_program = HIFToLoader()(nx_compose_all("!echo\n? foo\n? bar\n"))
-    untagged_program = LoaderMapping(tagged_program.branches)
+
+    assert isinstance(tagged_program, LoaderScalar)
+    assert tagged_program.tag == "echo"
+    assert tagged_program.value == ("foo", "bar")
+    assert LoaderToShell()(tagged_program) == Command(["echo", "foo", "bar"]) @ io_ty >> execution
+
+
+def test_loader_tagged_mapping_with_non_scalar_value_stays_mapping():
+    tagged_program = HIFToLoader()(nx_compose_all("!echo\n? foo: !wc -c\n"))
 
     assert isinstance(tagged_program, LoaderMapping)
     assert tagged_program.tag == "echo"
-    assert LoaderToShell()(tagged_program) == LoaderToShell()(untagged_program)
 
 
 def test_loader_shell_case_study_is_mapping_bubble():

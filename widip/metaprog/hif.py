@@ -5,6 +5,23 @@ from ..wire.hif import HyperGraph, hif_edge_incidences, hif_node, hif_node_incid
 from ..wire.loader import LoaderMapping, LoaderScalar, LoaderSequence, loader_id, pipeline
 
 
+def _mapping_command_args(entries):
+    """Return argv pieces for tagged scalar mappings, else ``None``."""
+    argv = []
+    for key_node, value_node in entries:
+        if not isinstance(key_node, LoaderScalar) or key_node.tag is not None:
+            return None
+        if not isinstance(value_node, LoaderScalar) or value_node.tag is not None:
+            return None
+        if not isinstance(key_node.value, str) or not isinstance(value_node.value, str):
+            return None
+        if key_node.value:
+            argv.append(key_node.value)
+        if value_node.value:
+            argv.append(value_node.value)
+    return tuple(argv)
+
+
 def _successor_nodes(graph: HyperGraph, node, *, edge_key="next", node_key="start"):
     """Yield successor nodes reached by one edge-node incidence pattern."""
     for edge, _, _, _ in hif_node_incidences(graph, node, key=edge_key, direction="head"):
@@ -105,6 +122,10 @@ class HIFToLoader(HIFSpecializer):
             case "sequence":
                 return LoaderSequence(value, tag=tag)
             case "mapping":
+                if tag is not None:
+                    command_args = _mapping_command_args(value)
+                    if command_args is not None:
+                        return LoaderScalar(command_args, tag)
                 branches = tuple(pipeline((key, entry_value)) for key, entry_value in value)
                 return LoaderMapping(branches, tag=tag)
             case _:

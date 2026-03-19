@@ -60,8 +60,13 @@ class LoaderToShell(ProcessSimulation):
             shell_lang.io_ty,
         ).output_diagram()
         if node.tag:
-            argv = (node.tag,) if not node.value else (node.tag, node.value)
+            if isinstance(node.value, tuple):
+                argv = (node.tag, *node.value)
+            else:
+                argv = (node.tag,) if not node.value else (node.tag, node.value)
             return shell_lang.Command(argv) @ shell_lang.io_ty >> execution
+        if isinstance(node.value, tuple):
+            raise TypeError(f"untagged argv tuple is unsupported: {node.value!r}")
         if not node.value:
             return shell_wire.shell_id()
         return shell_lang.Literal(node.value) @ shell_lang.io_ty >> execution
