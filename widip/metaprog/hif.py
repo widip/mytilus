@@ -5,8 +5,24 @@ from ..wire.hif import HyperGraph, hif_edge_incidences, hif_node, hif_node_incid
 from ..wire.loader import LoaderMapping, LoaderScalar, LoaderSequence, loader_id, pipeline
 
 
+def _is_command_substitution_program(node):
+    """Return whether one loader node is a valid substitution subprogram."""
+    if isinstance(node, LoaderScalar):
+        return isinstance(node.value, str) and node.tag is not None
+    if isinstance(node, LoaderSequence):
+        return bool(node.stages) and all(_is_command_substitution_program(stage) for stage in node.stages)
+    if isinstance(node, LoaderMapping):
+        return bool(node.branches) and all(_is_command_substitution_program(branch) for branch in node.branches)
+    return False
+
+
 def _mapping_key_command_arg(key_node):
     """Compile one mapping key to an argv argument for tagged mappings."""
+    if isinstance(key_node, (LoaderSequence, LoaderMapping)):
+        if not _is_command_substitution_program(key_node):
+            return None
+        # Structured keys are command-substitution programs.
+        return key_node
     if not isinstance(key_node, LoaderScalar):
         return None
     if not isinstance(key_node.value, str):

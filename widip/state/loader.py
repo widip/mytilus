@@ -8,7 +8,7 @@ from ..wire import loader as loader_wire
 from ..wire.loader import loader_stream_ty
 from ..wire import widish as shell_wire
 from .core import Execution, ProcessSimulation
-from .widish import Parallel, Pipeline
+from .widish import Parallel, Pipeline, SubstitutionParallel, SubstitutionPipeline
 
 
 class LoaderExecution(Execution):
@@ -53,25 +53,34 @@ class LoaderToShell(ProcessSimulation):
             return Parallel(tuple(self(branch) for branch in other.branches))
         return ProcessSimulation.__call__(self, other)
 
+    def compile_subprogram(self, node):
+        """Compile one loader node to a shell subprogram for substitution."""
+        if isinstance(node, loader_wire.LoaderScalar):
+            if node.tag:
+                return shell_lang.Command(self.command_argv(node))
+            if isinstance(node.value, tuple):
+                raise TypeError(f"untagged argv tuple is unsupported: {node.value!r}")
+            if not isinstance(node.value, str):
+                raise TypeError(f"untagged scalar argument must be a string: {node.value!r}")
+            if not node.value:
+                return shell_lang.Empty()
+            return shell_lang.Literal(node.value)
+        if isinstance(node, loader_wire.LoaderSequence):
+            return SubstitutionPipeline(tuple(self.compile_subprogram(stage) for stage in node.stages))
+        if isinstance(node, loader_wire.LoaderMapping):
+            return SubstitutionParallel(tuple(self.compile_subprogram(branch) for branch in node.branches))
+        raise TypeError(f"unsupported substitution node: {node!r}")
+
     def compile_command_argument(self, argument):
         """Compile one loader scalar argument to a shell argv item."""
         if isinstance(argument, str):
             return argument
+        if isinstance(argument, (loader_wire.LoaderSequence, loader_wire.LoaderMapping)):
+            return self.compile_subprogram(argument)
         if not isinstance(argument, loader_wire.LoaderScalar):
             raise TypeError(f"unsupported command argument: {argument!r}")
         if argument.tag:
-            if isinstance(argument.value, tuple):
-                argv = (
-                    argument.tag,
-                    *(self.compile_command_argument(value) for value in argument.value),
-                )
-            else:
-                argv = (
-                    (argument.tag,)
-                    if not argument.value
-                    else (argument.tag, self.compile_command_argument(argument.value))
-                )
-            return shell_lang.Command(argv)
+            return self.compile_subprogram(argument)
         if isinstance(argument.value, tuple):
             raise TypeError(f"untagged argv tuple is unsupported: {argument.value!r}")
         if not isinstance(argument.value, str):

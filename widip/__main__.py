@@ -1,8 +1,27 @@
 import sys
 import argparse
 import logging
+import os
+import tempfile
 
-# Stop starting a Matplotlib GUI
+
+def configure_matplotlib_cache():
+    """Set a writable default MPLCONFIGDIR when the environment does not provide one."""
+    if "MPLCONFIGDIR" in os.environ:
+        return
+
+    cache_dir = os.path.join(tempfile.gettempdir(), "widip-mpl")
+    try:
+        os.makedirs(cache_dir, exist_ok=True)
+        os.environ["MPLCONFIGDIR"] = cache_dir
+    except OSError:
+        # Fall back to Matplotlib defaults if we cannot create the cache directory.
+        pass
+
+
+configure_matplotlib_cache()
+
+# Stop starting a Matplotlib GUI.
 import matplotlib
 matplotlib.use('agg')
 

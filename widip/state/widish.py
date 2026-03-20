@@ -8,9 +8,23 @@ from .core import Execution
 from ..wire import widish as shell_wire
 
 
+class SubstitutionPipeline:
+    """Sequence of shell subprograms used inside command substitution."""
+
+    def __init__(self, stages):
+        self.stages = tuple(stages)
+
+
+class SubstitutionParallel:
+    """Parallel shell subprogram branches used inside command substitution."""
+
+    def __init__(self, branches):
+        self.branches = tuple(branches)
+
+
 def _resolve_command_substitution(argument, stdin: str) -> str:
     """Evaluate one command-substitution argument."""
-    if isinstance(argument, shell_lang.Command):
+    if isinstance(argument, (shell_lang.Command, SubstitutionPipeline, SubstitutionParallel)):
         # Shell command substitution strips trailing newlines.
         return shell_program_runner(argument)(stdin).rstrip("\n")
     if isinstance(argument, shell_lang.Literal):
@@ -43,6 +57,25 @@ def shell_program_runner(program):
         return lambda stdin: stdin
     if isinstance(program, shell_lang.Literal):
         return lambda _stdin: program.text
+    if isinstance(program, SubstitutionPipeline):
+        stage_runners = tuple(shell_program_runner(stage) for stage in program.stages)
+
+        def run(stdin: str) -> str:
+            output = stdin
+            for stage_runner in stage_runners:
+                output = stage_runner(output)
+            return output
+
+        return run
+    if isinstance(program, SubstitutionParallel):
+        branch_runners = tuple(shell_program_runner(branch) for branch in program.branches)
+
+        def run(stdin: str) -> str:
+            if not branch_runners:
+                return stdin
+            return "".join(branch_runner(stdin) for branch_runner in branch_runners)
+
+        return run
     if isinstance(program, shell_lang.Command):
         def run(stdin: str) -> str:
             completed = subprocess.run(

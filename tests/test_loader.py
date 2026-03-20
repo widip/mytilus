@@ -110,21 +110,31 @@ def test_loader_tagged_mapping_of_scalars_is_command():
 
 
 def test_loader_tagged_mapping_supports_command_substitution_keys():
-    program = HIFToLoader()(nx_compose_all(Path("examples/hello-world-map.yaml").read_text()))
+    source = """!echo
+? Hello
+? World
+? !echo Foo: !wc -c
+? "!"
+"""
+    program = HIFToLoader()(nx_compose_all(source))
 
     assert isinstance(program, LoaderScalar)
     assert program.tag == "echo"
     assert program.value[:2] == ("Hello", "World")
-    assert isinstance(program.value[2], LoaderScalar)
-    assert program.value[2].tag == "echo"
-    assert program.value[2].value == "Foo"
+    assert isinstance(program.value[2], LoaderMapping)
     assert program.value[3] == "!"
 
 
 def test_loader_tagged_mapping_command_substitution_runs():
-    program = LoaderToShell()(HIFToLoader()(nx_compose_all(Path("examples/hello-world-map.yaml").read_text())))
+    source = """!echo
+? Hello
+? World
+? !echo Foo: !wc -c
+? "!"
+"""
+    program = LoaderToShell()(HIFToLoader()(nx_compose_all(source)))
 
-    assert SHELL_INTERPRETER(program)("") == "Hello World Foo !\n"
+    assert SHELL_INTERPRETER(program)("") == "Hello World 4 !\n"
 
 
 def test_loader_tagged_mapping_with_non_scalar_value_stays_mapping():
