@@ -1,6 +1,6 @@
 """HIF-specific specializers and lowerings."""
 
-from ..comput.computer import Ty
+from discorun.comput.computer import Ty
 from ..wire.hif import HyperGraph, hif_edge_incidences, hif_node, hif_node_incidences
 from ..wire.loader import LoaderMapping, LoaderScalar, LoaderSequence, loader_id, pipeline
 

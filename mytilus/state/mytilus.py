@@ -2,10 +2,10 @@
 
 import subprocess
 
-from ..comput import computer
+from discorun.comput import computer
 from ..comput import mytilus as shell_lang
 from ..metaprog import mytilus as metaprog_mytilus
-from .core import Execution, InputOutputMap
+from discorun.state.core import Execution, InputOutputMap
 from ..wire import mytilus as shell_wire
 
 

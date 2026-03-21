@@ -3,7 +3,7 @@ import pathlib
 
 from nx_yaml import nx_compose_all
 
-from .comput.computer import Box, Diagram
+from discorun.comput.computer import Box, Diagram
 from .metaprog.hif import HIFToLoader
 from .state.loader import LoaderToShell
 

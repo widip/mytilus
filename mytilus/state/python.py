@@ -4,12 +4,12 @@ from collections.abc import Callable
 
 from discopy import monoidal, python
 
-from ..comput import computer
+from discorun.comput import computer
 from ..comput import mytilus as shell_lang
-from ..metaprog import core as metaprog_core
+from discorun.metaprog import core as metaprog_core
 from ..metaprog import python as metaprog_python
-from ..pcc import SHELL
-from . import core as state_core
+from ..pcc.mytilus import SHELL
+from discorun.state import core as state_core
 from .mytilus import Parallel as ShellParallel
 from .mytilus import Pipeline as ShellPipeline
 from .mytilus import ShellSpecializer, shell_program_runner

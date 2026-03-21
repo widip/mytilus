@@ -7,10 +7,10 @@ from functools import partial
 from discopy import python
 from discopy.utils import tuplify, untuplify
 
-from ..comput import computer
+from discorun.comput import computer
+from discorun.pcc.core import ProgramClosedCategory
+from discorun.metaprog import core as metaprog_core
 from ..comput import python as comput_python
-from ..pcc import ProgramClosedCategory
-from . import core as metaprog_core
 
 
 PYTHON_PROGRAMS = ProgramClosedCategory(comput_python.program_ty)

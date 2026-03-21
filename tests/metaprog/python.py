@@ -1,6 +1,6 @@
 """Diagram tests for Sec. 6.2.2 and Futamura projections."""
 
-from mytilus.comput import computer
+from discorun.comput import computer
 from mytilus.comput import python as comput_python
 from mytilus.metaprog.python import (
     PYTHON_COMPILER,

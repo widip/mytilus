@@ -1,6 +1,6 @@
 """Shell-language program constants."""
 
-from . import computer
+from discorun.comput import computer
 from ..wire.mytilus import io_ty
 
 

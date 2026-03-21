@@ -1,9 +1,9 @@
 import pytest
 from nx_yaml import nx_compose_all
 
-from mytilus.comput.computer import *
-from mytilus.metaprog import SHELL_SPECIALIZER
-from mytilus.metaprog.core import MetaprogramComputation, MetaprogramFunctor, ProgramComputation, ProgramFunctor, Specializer
+from discorun.comput.computer import *
+from mytilus.metaprog.mytilus import ShellSpecializer
+from discorun.metaprog.core import MetaprogramComputation, MetaprogramFunctor, ProgramComputation, ProgramFunctor, Specializer
 from mytilus.metaprog.hif import HIFToLoader
 from mytilus.state.loader import LoaderToShell
 from os import path
@@ -38,6 +38,7 @@ h_ev = ComputableFunction("{H}", X, A, B)
 l_ev = ComputableFunction("{L}", X, A, B)
 H_to_L = ProgramComputation("H", L_ty, X, A, B)
 L_to_H = ProgramComputation("L", H_ty, X, A, B)
+SHELL_SPECIALIZER = ShellSpecializer()
 
 
 def test_sec_6_2_2(request):

@@ -1,8 +1,8 @@
 """Program-closed category for the YAML loader language."""
 
-from ..comput import computer
+from discorun.comput import computer
 from ..comput.loader import loader_program_ty
-from .core import ProgramClosedCategory
+from discorun.pcc.core import ProgramClosedCategory
 
 
 class LoaderLanguage(ProgramClosedCategory):

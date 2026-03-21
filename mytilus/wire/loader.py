@@ -2,8 +2,8 @@
 
 from discopy import monoidal
 
-from .functions import Box
-from .types import Id, Ty
+from discorun.wire.functions import Box
+from discorun.wire.types import Id, Ty
 
 
 loader_stream_ty = Ty("yaml_stream")

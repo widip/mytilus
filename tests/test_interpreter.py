@@ -1,5 +1,5 @@
-from mytilus.comput.computer import Computer, ProgramTy, Ty
-from mytilus.pcc import ProgramClosedCategory
+from discorun.comput.computer import Computer, ProgramTy, Ty
+from discorun.pcc.core import ProgramClosedCategory
 
 
 H_ty, L_ty = ProgramTy("H"), ProgramTy("L")

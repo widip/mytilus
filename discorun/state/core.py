@@ -4,7 +4,7 @@ from discopy import monoidal
 
 from ..comput import computer
 from ..metaprog import core as metaprog_core
-from ..pcc import ProgramClosedCategory
+from ..pcc.core import ProgramClosedCategory
 
 
 class StateUpdateMap(computer.Box):

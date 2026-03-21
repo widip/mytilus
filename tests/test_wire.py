@@ -1,11 +1,11 @@
-from mytilus.comput.computer import Box as ComputerBox
-from mytilus.comput.computer import Copy as ComputerCopy
-from mytilus.comput.computer import Ty as ComputerTy
+from discorun.comput.computer import Box as ComputerBox
+from discorun.comput.computer import Copy as ComputerCopy
+from discorun.comput.computer import Ty as ComputerTy
 from mytilus.comput.mytilus import io_ty as shell_io_ty
-from mytilus.wire.functions import Box
+from discorun.wire.functions import Box
 from mytilus.wire.loader import loader_id, loader_stream_ty
-from mytilus.wire.services import Copy, Delete, Swap
-from mytilus.wire.types import Diagram, Id, Ty
+from discorun.wire.services import Copy, Delete, Swap
+from discorun.wire.types import Diagram, Id, Ty
 from mytilus.wire.mytilus import Copy as ShellCopy, shell_id
 
 

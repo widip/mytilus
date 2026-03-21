@@ -1,6 +1,6 @@
 from discopy import closed, markov, monoidal
 
-from . import computer
+from discorun.comput import computer
 
 
 program_ty = computer.ProgramTy("python")

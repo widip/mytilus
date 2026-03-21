@@ -2,8 +2,8 @@
 
 from discopy import monoidal
 
-from .core import Specializer
-from ..comput import computer
+from discorun.metaprog.core import Specializer
+from discorun.comput import computer
 from ..comput import mytilus as shell_lang
 from ..wire import mytilus as shell_wire
 

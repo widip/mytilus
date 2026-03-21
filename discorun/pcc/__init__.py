@@ -1,0 +1,1 @@
+"""Program-closed category package."""

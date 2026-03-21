@@ -1,7 +1,7 @@
 """Shell-specific wire combinators and structural boxes."""
 
-from .services import Copy as CopyService, Delete
-from .types import Id, Ty
+from discorun.wire.services import Copy as CopyService, Delete
+from discorun.wire.types import Id, Ty
 
 
 io_ty = Ty("io")

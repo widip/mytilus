@@ -1,10 +1,12 @@
 from discopy import python
 
-from mytilus.comput import computer
-from mytilus.comput.computer import Box, ComputableFunction, Computer, Copy, Program, ProgramTy, Ty
+from discorun.comput import computer
+from discorun.comput.computer import Box, ComputableFunction, Computer, Copy, Program, ProgramTy, Ty
 from mytilus.comput.mytilus import io_ty
-from mytilus.pcc import LOADER, MonoidalComputer, ProgramClosedCategory, SHELL
-from mytilus.state import (
+from discorun.pcc.core import MonoidalComputer, ProgramClosedCategory
+from mytilus.pcc.loader import LOADER
+from mytilus.pcc.mytilus import SHELL
+from discorun.state.core import (
     Execution,
     InputOutputMap,
     Process,

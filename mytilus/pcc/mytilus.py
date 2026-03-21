@@ -1,8 +1,8 @@
 """Program-closed category with shell as distinguished language."""
 
-from ..comput import computer
+from discorun.comput import computer
 from ..comput.mytilus import shell_program_ty
-from .core import ProgramClosedCategory
+from discorun.pcc.core import ProgramClosedCategory
 
 
 class ShellLanguage(ProgramClosedCategory):

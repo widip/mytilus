@@ -1,6 +1,6 @@
 """Loader-language program constants."""
 
-from . import computer
+from discorun.comput import computer
 
 
 loader_program_ty = computer.ProgramTy("yaml")

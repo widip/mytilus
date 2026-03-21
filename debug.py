@@ -1,13 +1,14 @@
 from pathlib import Path
 
-from mytilus.computer import Box, ComputableFunction, ProgramTy, Ty
-from mytilus.metaprog import (
+from discorun.comput.computer import Box, ComputableFunction, ProgramTy, Ty
+from discorun.metaprog.core import (
     MetaprogramComputation,
     MetaprogramFunctor,
     ProgramComputation,
     ProgramFunctor,
 )
-from mytilus.state import Process, ProgramClosedCategory, fixed_state, simulate
+from discorun.pcc.core import ProgramClosedCategory
+from discorun.state.core import Process, fixed_state, simulate
 
 
 def large_diagram():
