@@ -1,5 +1,5 @@
-from widip.comput.computer import Computer, ProgramTy, Ty
-from widip.pcc import ProgramClosedCategory
+from mytilus.comput.computer import Computer, ProgramTy, Ty
+from mytilus.pcc import ProgramClosedCategory
 
 
 H_ty, L_ty = ProgramTy("H"), ProgramTy("L")

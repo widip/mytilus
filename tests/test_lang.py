@@ -1,11 +1,11 @@
-from widip.comput.computer import Ty
-from widip.comput import python as comput_python
-from widip.comput.widish import Command, Empty, Literal, ShellProgram, io_ty, shell_program_ty
-from widip.metaprog import python as metaprog_python
-from widip.pcc import SHELL
-from widip.state import core as state_core
-from widip.state.python import SHELL_INTERPRETER, SHELL_PROGRAM_TO_PYTHON
-from widip.state.widish import (
+from mytilus.comput.computer import Ty
+from mytilus.comput import python as comput_python
+from mytilus.comput.mytilus import Command, Empty, Literal, ShellProgram, io_ty, shell_program_ty
+from mytilus.metaprog import python as metaprog_python
+from mytilus.pcc import SHELL
+from mytilus.state import core as state_core
+from mytilus.state.python import SHELL_INTERPRETER, SHELL_PROGRAM_TO_PYTHON
+from mytilus.state.mytilus import (
     Parallel,
     Pipeline,
     ShellExecution,
@@ -13,7 +13,7 @@ from widip.state.widish import (
     parallel,
     shell_program_runner,
 )
-from widip.wire.widish import Copy
+from mytilus.wire.mytilus import Copy
 
 
 def box_names(diagram):
@@ -105,7 +105,7 @@ def test_mapping_bubble_specializes_to_parallel_shell_bubble():
     assert specialized.dom == io_ty
     assert specialized.cod == io_ty
     assert not any(name.startswith("('tee',") for name in names)
-    assert not any(name.startswith("('cat', '/tmp/widip-") for name in names)
+    assert not any(name.startswith("('cat', '/tmp/mytilus-") for name in names)
     assert "merge[3]" not in names
     assert "∆" not in names
 
@@ -175,7 +175,7 @@ def test_parallel_specializer_preserves_parallel_shell_bubble():
 
     assert isinstance(specialized, Parallel)
     assert not any(name.startswith("('tee',") for name in names)
-    assert not any(name.startswith("('cat', '/tmp/widip-") for name in names)
+    assert not any(name.startswith("('cat', '/tmp/mytilus-") for name in names)
     assert "merge[2]" not in names
     assert "∆" not in names
     assert SHELL_INTERPRETER(program)("") == "leftright"

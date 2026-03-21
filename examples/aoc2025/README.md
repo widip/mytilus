@@ -3,7 +3,7 @@
 ## Day 1-1
 
 ```
-$ python -m widip examples/aoc2025/1-1.yaml
+$ python -m mytilus examples/aoc2025/1-1.yaml
 1147
 ```
 
@@ -12,7 +12,7 @@ $ python -m widip examples/aoc2025/1-1.yaml
 ## Day 1-2
 
 ```
-$ python -m widip examples/aoc2025/1-2.yaml
+$ python -m mytilus examples/aoc2025/1-2.yaml
 6789
 ```
 
@@ -21,7 +21,7 @@ $ python -m widip examples/aoc2025/1-2.yaml
 ## Day 2-1
 
 ```
-$ python -m widip examples/aoc2025/2-1.yaml
+$ python -m mytilus examples/aoc2025/2-1.yaml
 13108371860
 ```
 
@@ -30,7 +30,7 @@ $ python -m widip examples/aoc2025/2-1.yaml
 ## Day 2-2
 
 ```
-$ python -m widip examples/aoc2025/2-2.yaml
+$ python -m mytilus examples/aoc2025/2-2.yaml
 22471660255
 ```
 
@@ -39,7 +39,7 @@ $ python -m widip examples/aoc2025/2-2.yaml
 ## Day 3-1
 
 ```
-$ python -m widip examples/aoc2025/3-1.yaml
+$ python -m mytilus examples/aoc2025/3-1.yaml
 17324
 ```
 

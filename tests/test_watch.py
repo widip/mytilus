@@ -1,12 +1,15 @@
+import subprocess
+
 import pytest
 from nx_yaml import nx_compose_all
 
-import widip.watch as watch
-from widip.comput.widish import Command, io_ty
-from widip.metaprog.hif import HIFToLoader
-from widip.pcc import SHELL
-from widip.state.loader import LoaderToShell
-from widip.watch import CTRL_D, CTRL_J, CTRL_M, apply_tty_input, emit_shell_source, read_shell_source, watch_log
+import mytilus.watch as watch
+from mytilus.comput.mytilus import Command, io_ty
+from mytilus.metaprog.hif import HIFToLoader
+from mytilus.pcc import SHELL
+from mytilus.state.loader import LoaderToShell
+from mytilus.state.mytilus import terminal_passthrough_command
+from mytilus.watch import CTRL_D, CTRL_J, CTRL_M, apply_tty_input, emit_shell_source, read_shell_source, watch_log
 
 
 def test_apply_tty_input_uses_ctrl_j_as_newline_and_ctrl_m_as_submit():
@@ -76,29 +79,69 @@ def test_emit_shell_source_writes_a_trailing_newline(capsys):
     assert captured.err == ""
 
 
-def test_shell_main_continues_after_invalid_command(monkeypatch, capsys):
+def test_terminal_passthrough_command_extracts_top_level_command():
+    diagram = LoaderToShell()(HIFToLoader()(nx_compose_all("!echo ok\n")))
+    command = terminal_passthrough_command(diagram)
+
+    assert command == Command(["echo", "ok"])
+
+
+def test_execute_shell_diagram_uses_terminal_passthrough_when_available(monkeypatch):
+    diagram = LoaderToShell()(HIFToLoader()(nx_compose_all("!echo ok\n")))
+    seen = {}
+
+    monkeypatch.setattr(watch, "has_interactive_terminal", lambda: True)
+    monkeypatch.setattr(watch, "run_terminal_command", lambda command: seen.setdefault("argv", command.argv))
+
+    result = watch.execute_shell_diagram(diagram, None)
+
+    assert result is None
+    assert seen["argv"] == ("echo", "ok")
+
+
+def test_execute_shell_diagram_keeps_structured_programs_captured(monkeypatch):
+    diagram = LoaderToShell()(HIFToLoader()(nx_compose_all("- !printf hi\n- !wc -c\n")))
+
+    monkeypatch.setattr(watch, "has_interactive_terminal", lambda: True)
+
+    assert watch.execute_shell_diagram(diagram, None) == "2\n"
+
+
+def test_terminal_passthrough_command_rejects_nested_command_substitution():
+    diagram = Command(["echo", Command(["printf", "ok"])]) @ io_ty >> SHELL.execution(io_ty, io_ty).output_diagram()
+
+    assert terminal_passthrough_command(diagram) is None
+
+
+def test_execute_shell_diagram_keeps_nested_command_substitution_captured(monkeypatch):
+    diagram = Command(["echo", Command(["printf", "ok"])]) @ io_ty >> SHELL.execution(io_ty, io_ty).output_diagram()
+
+    monkeypatch.setattr(watch, "has_interactive_terminal", lambda: True)
+    monkeypatch.setattr(watch, "run_terminal_command", lambda command: pytest.fail(f"unexpected passthrough for {command.argv!r}"))
+
+    assert watch.execute_shell_diagram(diagram, None) == "ok\n"
+
+
+def test_shell_main_propagates_invalid_command_errors(monkeypatch, capsys):
     class DummyObserver:
         def stop(self):
             return None
 
     sources = iter(("!git status --short\n", "!echo ok\n"))
 
-    def fake_read_shell_source(_file_name):
+    def fake_read_line():
         try:
             return next(sources)
         except StopIteration as exc:
             raise EOFError from exc
 
     monkeypatch.setattr(watch, "watch_main", lambda: DummyObserver())
-    monkeypatch.setattr(watch, "read_shell_source", fake_read_shell_source)
+    monkeypatch.setattr(watch, "default_shell_source_reader", fake_read_line)
 
-    with pytest.raises(SystemExit) as raised:
+    with pytest.raises(subprocess.CalledProcessError):
         watch.shell_main("bin/yaml/shell.yaml", draw=False)
 
     captured = capsys.readouterr()
 
-    assert raised.value.code == 0
     assert "!git status --short" in captured.out
-    assert "!echo ok" in captured.out
-    assert "returned non-zero exit status" in captured.err
-    assert "ok" in captured.out
+    assert "!echo ok" not in captured.out

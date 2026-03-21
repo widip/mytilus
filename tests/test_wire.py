@@ -1,12 +1,12 @@
-from widip.comput.computer import Box as ComputerBox
-from widip.comput.computer import Copy as ComputerCopy
-from widip.comput.computer import Ty as ComputerTy
-from widip.comput.widish import io_ty as shell_io_ty
-from widip.wire.functions import Box
-from widip.wire.loader import loader_id, loader_stream_ty
-from widip.wire.services import Copy, Delete, Swap
-from widip.wire.types import Diagram, Id, Ty
-from widip.wire.widish import Copy as ShellCopy, shell_id
+from mytilus.comput.computer import Box as ComputerBox
+from mytilus.comput.computer import Copy as ComputerCopy
+from mytilus.comput.computer import Ty as ComputerTy
+from mytilus.comput.mytilus import io_ty as shell_io_ty
+from mytilus.wire.functions import Box
+from mytilus.wire.loader import loader_id, loader_stream_ty
+from mytilus.wire.services import Copy, Delete, Swap
+from mytilus.wire.types import Diagram, Id, Ty
+from mytilus.wire.mytilus import Copy as ShellCopy, shell_id
 
 
 def test_wire_exports_chapter_one_primitives():
@@ -29,7 +29,7 @@ def test_loader_wire_module_exports_loader_specific_wiring():
     assert loader_id().cod == loader_stream_ty
 
 
-def test_widish_wire_module_exports_shell_specific_wiring():
+def test_mytilus_wire_module_exports_shell_specific_wiring():
     assert shell_id().dom == shell_io_ty
     assert shell_id().cod == shell_io_ty
     assert ShellCopy(3).dom == shell_io_ty

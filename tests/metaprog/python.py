@@ -1,8 +1,8 @@
 """Diagram tests for Sec. 6.2.2 and Futamura projections."""
 
-from widip.comput import computer
-from widip.comput import python as comput_python
-from widip.metaprog.python import (
+from mytilus.comput import computer
+from mytilus.comput import python as comput_python
+from mytilus.metaprog.python import (
     PYTHON_COMPILER,
     PYTHON_COMPILER_GENERATOR,
     PYTHON_EVALUATOR_BOX,

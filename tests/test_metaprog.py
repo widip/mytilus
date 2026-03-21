@@ -1,11 +1,11 @@
 import pytest
 from nx_yaml import nx_compose_all
 
-from widip.comput.computer import *
-from widip.metaprog import SHELL_SPECIALIZER
-from widip.metaprog.core import MetaprogramComputation, MetaprogramFunctor, ProgramComputation, ProgramFunctor, Specializer
-from widip.metaprog.hif import HIFToLoader
-from widip.state.loader import LoaderToShell
+from mytilus.comput.computer import *
+from mytilus.metaprog import SHELL_SPECIALIZER
+from mytilus.metaprog.core import MetaprogramComputation, MetaprogramFunctor, ProgramComputation, ProgramFunctor, Specializer
+from mytilus.metaprog.hif import HIFToLoader
+from mytilus.state.loader import LoaderToShell
 from os import path
 
 

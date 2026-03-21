@@ -1,8 +1,8 @@
 import pytest
 
-from widip.comput.computer import *
-from widip.comput.boxes import Data, Parallel, Partial, Sequential
-from widip.comput.compile import Compile
+from mytilus.comput.computer import *
+from mytilus.comput.boxes import Data, Parallel, Partial, Sequential
+from mytilus.comput.compile import Compile
 from os import path
 
 SVG_ROOT_PATH = path.join("tests", "svg")

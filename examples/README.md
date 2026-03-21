@@ -3,7 +3,7 @@
 ## Hello world!
 
 ```
-$ python -m widip examples/hello-world.yaml
+$ python -m mytilus examples/hello-world.yaml
 Hello world!
 ```
 
@@ -12,7 +12,7 @@ Hello world!
 ## Script
 
 ```
-$ python -m widip examples/shell.yaml
+$ python -m mytilus examples/shell.yaml
 73
 23
   ? !grep grep: !wc -c
@@ -23,12 +23,19 @@ $ python -m widip examples/shell.yaml
 
 
 # Working with the CLI
-Open terminal and run `widip` to start an interactive session. The program `bin/yaml/shell.yaml` prompts for one command per line, so when we hit `↵ Enter` it is evaluated. When hitting `⌁ Ctrl+D` the environment exits.
+Open terminal and run `mytilus` to start an interactive session. The program `bin/yaml/shell.yaml` prompts for one command per line, so when we hit `↵ Enter` it is evaluated. When hitting `⌁ Ctrl+D` the environment exits.
 
 ```yaml
 --- !bin/yaml/shell.yaml
 !echo Hello world!
 Hello world!
+```
+
+Escaped ASCII newlines can encode multiline commands in one REPL entry:
+
+```yaml
+!echo\n? foo\n? bar\n
+foo bar
 ```
 
 # Other examples

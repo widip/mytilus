@@ -1,13 +1,13 @@
 from pathlib import Path
 
-from widip.computer import Box, ComputableFunction, ProgramTy, Ty
-from widip.metaprog import (
+from mytilus.computer import Box, ComputableFunction, ProgramTy, Ty
+from mytilus.metaprog import (
     MetaprogramComputation,
     MetaprogramFunctor,
     ProgramComputation,
     ProgramFunctor,
 )
-from widip.state import Process, ProgramClosedCategory, fixed_state, simulate
+from mytilus.state import Process, ProgramClosedCategory, fixed_state, simulate
 
 
 def large_diagram():

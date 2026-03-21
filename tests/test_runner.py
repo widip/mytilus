@@ -5,15 +5,15 @@ from pathlib import Path
 import pytest
 from nx_yaml import nx_compose_all
 
-from widip.metaprog.hif import HIFToLoader
-from widip.state.loader import LoaderToShell
-from widip.state.python import SHELL_INTERPRETER
-from widip.state.widish import ShellSpecializer
+from mytilus.metaprog.hif import HIFToLoader
+from mytilus.state.loader import LoaderToShell
+from mytilus.state.python import SHELL_INTERPRETER
+from mytilus.state.mytilus import ShellSpecializer
 
 
-FIXTURE_DIR = Path("tests/widish")
+FIXTURE_DIR = Path("tests/mytilus")
 
-os.environ.setdefault("MPLCONFIGDIR", "/tmp/widip-mpl")
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/mytilus-mpl")
 
 
 def case_paths():
@@ -26,7 +26,7 @@ def normalize_svg(svg_text: str) -> str:
     svg_text = re.sub(r'id="[^"]*[0-9a-f]{8,}[^"]*"', 'id="SVG_ID"', svg_text)
     svg_text = re.sub(r'url\(#([^)]*[0-9a-f]{8,}[^)]*)\)', 'url(#SVG_ID)', svg_text)
     svg_text = re.sub(r'xlink:href="#[^"]*[0-9a-f]{8,}[^"]*"', 'xlink:href="#SVG_ID"', svg_text)
-    svg_text = re.sub(r"/tmp/widip-[^<\" ]+\.tmp", "/tmp/WIDIP_TMP", svg_text)
+    svg_text = re.sub(r"/tmp/mytilus-[^<\" ]+\.tmp", "/tmp/MYTILUS_TMP", svg_text)
     marker_use_re = re.compile(r'^\s*<use xlink:href="#SVG_ID" x="[^"]+" y="[^"]+" style="stroke: #000000"/>\s*$', re.MULTILINE)
     marker_uses = iter(sorted(match.group(0).strip() for match in marker_use_re.finditer(svg_text)))
     svg_text = marker_use_re.sub(lambda _match: next(marker_uses), svg_text)

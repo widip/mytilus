@@ -1,13 +1,13 @@
-Widip
+Mytilus
 -----
 
 > _Types? Where we're going, we don't need types!_
 
-Widip is an [interactive environment] for computing in modern systems. Many long-standing systems have thrived thanks to a uniform metaphor, which in our case is wiring diagrams.
+Mytilus is an [interactive environment] for computing in modern systems. Many long-standing systems have thrived thanks to a uniform metaphor, which in our case is wiring diagrams.
 
 System   |Metaphor
 ---------|--------------
-Widip    |Wiring Diagram
+Mytilus    |Wiring Diagram
 UNIX     |File
 Lisp     |List
 Smalltalk|Object
@@ -17,11 +17,11 @@ Smalltalk|Object
 
 # Installation
 
-`widip` can be installed via [pip](https://pypi.org/project/widip/) and run from the command line as follows:
+`mytilus` can be installed via [pip](https://pypi.org/project/mytilus/) and run from the command line as follows:
 
 ```bash
-pip install widip
-python -m widip
+pip install mytilus
+python -m mytilus
 ```
 
 This will automatically install dependencies: [discopy](https://pypi.org/project/discopy/) (computing, drawing), [pyyaml](https://pypi.org/project/pyyaml/) (parser library), and [watchdog](https://pypi.org/project/watchdog/) (filesystem watcher).
@@ -30,8 +30,8 @@ This will automatically install dependencies: [discopy](https://pypi.org/project
 
 If you're working with a local copy of this repository, run `pip install -e .`.
 
-# Using `widip`
-The `widip` program starts a [chatbot] or [command-line interface]. It integrates with the [filesystem] for rendering diagram files. We give more information for a few use cases below.
+# Using `mytilus`
+The `mytilus` program starts a [chatbot] or [command-line interface]. It integrates with the [filesystem] for rendering diagram files. We give more information for a few use cases below.
 
 ## For documentation
 Widis are meant for humans before computers and we find it valuable to give immediate visual feedback. Changes in a `.yaml` file trigger rendering a `.jpg` file next to it. This guides the user exploration while they can bring their own tools. As an example, VS Code will automatically reload markdown previews when `.jpg` files change.
@@ -39,7 +39,7 @@ Widis are meant for humans before computers and we find it valuable to give imme
 Widis are great for communication and this is a very convenient workflow for git- and text-based documentation.
 
 ## For UNIX programming
-The lightweight `widish` [UNIX shell] works everywhere from developer workstations to cloud environments to production servers. Processes that read and write YAML document streams are first-class citizens. With this practical approach users can write programs in the same language of widis.
+The lightweight `mytilus` [UNIX shell] works everywhere from developer workstations to cloud environments to production servers. Processes that read and write YAML document streams are first-class citizens. With this practical approach users can write programs in the same language of widis.
 
 ## For graphical programming
 Programming is hard, but it shouldn't be _that_ hard.

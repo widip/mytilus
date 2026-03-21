@@ -2,14 +2,14 @@ from pathlib import Path
 
 from nx_yaml import nx_compose_all
 
-from widip.metaprog.hif import HIFSpecializer
-from widip.state.hif import (
+from mytilus.metaprog.hif import HIFSpecializer
+from mytilus.state.hif import (
     document_root_node,
     mapping_entry_nodes,
     sequence_item_nodes,
     stream_document_nodes,
 )
-from widip.wire.hif import hif_node
+from mytilus.wire.hif import hif_node
 
 
 class ShapeSpecializer(HIFSpecializer):

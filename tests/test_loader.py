@@ -2,18 +2,18 @@ from pathlib import Path
 
 from nx_yaml import nx_compose_all
 
-from widip.comput.computer import Ty
-from widip.comput.loader import LoaderLiteral, loader_program_ty
-from widip.comput.widish import Command, Literal, io_ty, shell_program_ty
-from widip.metaprog.hif import HIFToLoader
-from widip.pcc import SHELL
-from widip.state.core import InputOutputMap, StateUpdateMap
-from widip.state.loader import LoaderExecution, LoaderToShell
-from widip.state.python import SHELL_INTERPRETER
-from widip.state.widish import Parallel, Pipeline
-from widip.wire.hif import HyperGraph
-from widip.wire.loader import LoaderMapping, LoaderScalar, LoaderSequence, loader_stream_ty
-from widip.wire.widish import shell_id
+from mytilus.comput.computer import Ty
+from mytilus.comput.loader import LoaderLiteral, loader_program_ty
+from mytilus.comput.mytilus import Command, Literal, io_ty, shell_program_ty
+from mytilus.metaprog.hif import HIFToLoader
+from mytilus.pcc import SHELL
+from mytilus.state.core import InputOutputMap, StateUpdateMap
+from mytilus.state.loader import LoaderExecution, LoaderToShell
+from mytilus.state.python import SHELL_INTERPRETER
+from mytilus.state.mytilus import Parallel, Pipeline
+from mytilus.wire.hif import HyperGraph
+from mytilus.wire.loader import LoaderMapping, LoaderScalar, LoaderSequence, loader_stream_ty
+from mytilus.wire.mytilus import shell_id
 
 
 def test_loader_empty_stream_is_identity():

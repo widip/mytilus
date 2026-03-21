@@ -1,3 +1,8 @@
+# cat examples/shell.yaml | wc -c
+# cat examples/shell.yaml | grep grep | wc -c
+# cat examples/shell.yaml | grep grep | cat
+# cat examples/shell.yaml | tail -2
+
 !cat examples/shell.yaml:
   ? !wc -c
   ? !grep grep: !wc -c

@@ -1,10 +1,10 @@
 from discopy import python
 
-from widip.comput import computer
-from widip.comput.computer import Box, ComputableFunction, Computer, Copy, Program, ProgramTy, Ty
-from widip.comput.widish import io_ty
-from widip.pcc import LOADER, MonoidalComputer, ProgramClosedCategory, SHELL
-from widip.state import (
+from mytilus.comput import computer
+from mytilus.comput.computer import Box, ComputableFunction, Computer, Copy, Program, ProgramTy, Ty
+from mytilus.comput.mytilus import io_ty
+from mytilus.pcc import LOADER, MonoidalComputer, ProgramClosedCategory, SHELL
+from mytilus.state import (
     Execution,
     InputOutputMap,
     Process,
@@ -13,10 +13,10 @@ from widip.state import (
     fixed_state,
     simulate,
 )
-from widip.state.loader import LoaderExecution
-from widip.state.widish import ShellExecution
-from widip.state.python import ProcessRunner
-from widip.wire.loader import loader_stream_ty
+from mytilus.state.loader import LoaderExecution
+from mytilus.state.mytilus import ShellExecution
+from mytilus.state.python import ProcessRunner
+from mytilus.wire.loader import loader_stream_ty
 
 
 X, Y, A, B = Ty("X"), Ty("Y"), Ty("A"), Ty("B")
