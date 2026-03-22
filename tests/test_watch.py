@@ -6,7 +6,7 @@ from nx_yaml import nx_compose_all
 import mytilus.watch as watch
 from mytilus.comput.mytilus import Command, io_ty
 from mytilus.metaprog.hif import HIFToLoader
-from mytilus.pcc.mytilus import SHELL
+from mytilus.pcc import SHELL
 from mytilus.state.loader import LoaderToShell
 from mytilus.state.mytilus import terminal_passthrough_command
 from mytilus.watch import CTRL_D, CTRL_J, CTRL_M, apply_tty_input, emit_shell_source, read_shell_source, watch_log

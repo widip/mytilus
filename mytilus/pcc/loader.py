@@ -16,6 +16,3 @@ class LoaderLanguage(ProgramClosedCategory):
         from ..state.loader import LoaderExecution
 
         return LoaderExecution()
-
-
-LOADER = LoaderLanguage()

@@ -6,8 +6,8 @@ import pytest
 from nx_yaml import nx_compose_all
 
 from mytilus.metaprog.hif import HIFToLoader
+from mytilus.state import SHELL_INTERPRETER
 from mytilus.state.loader import LoaderToShell
-from mytilus.state.python import SHELL_INTERPRETER
 from mytilus.state.mytilus import ShellSpecializer
 
 

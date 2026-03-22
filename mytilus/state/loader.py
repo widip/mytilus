@@ -1,10 +1,10 @@
 """Loader-specific stateful execution."""
 
+import mytilus.pcc as mytilus_pcc
+
 from ..comput import loader as loader_lang
 from ..comput.loader import loader_program_ty
 from ..comput import mytilus as shell_lang
-from ..pcc.loader import LOADER
-from ..pcc.mytilus import SHELL
 from ..wire import loader as loader_wire
 from ..wire.loader import loader_stream_ty
 from ..wire import mytilus as shell_wire
@@ -38,12 +38,12 @@ class LoaderToShell(ProcessSimulation):
             return shell_lang.Empty()
         if isinstance(item, loader_lang.LoaderLiteral):
             return shell_lang.Literal(item.text)
-        if LOADER.is_evaluator(item):
-            return SHELL.evaluator(
+        if mytilus_pcc.LOADER.is_evaluator(item):
+            return mytilus_pcc.SHELL.evaluator(
                 self.simulation(item.A),
                 self.simulation(item.B),
             )
-        return LOADER.simulate(item, SHELL)
+        return mytilus_pcc.LOADER.simulate(item, mytilus_pcc.SHELL)
 
     def __call__(self, other):
         if isinstance(other, loader_wire.LoaderScalar):
@@ -101,7 +101,7 @@ class LoaderToShell(ProcessSimulation):
 
     def compile_scalar(self, node: loader_wire.LoaderScalar):
         """Compile one YAML scalar node to the shell backend."""
-        execution = SHELL.execution(
+        execution = mytilus_pcc.SHELL.execution(
             shell_lang.io_ty,
             shell_lang.io_ty,
         ).output_diagram()

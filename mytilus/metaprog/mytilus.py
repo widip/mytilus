@@ -61,7 +61,7 @@ class ShellSpecializer(Specializer):
     def __call__(self, other):
         return _specialize_shell(other)
 
-    def ar_map(self, ar):
+    def _identity_arrow(self, ar):
         del self
         return ar
 

@@ -36,22 +36,27 @@ class Specializer(Functor):
     def __init__(self, *, dom=None, cod=None):
         Functor.__init__(
             self,
-            self.object,
-            self.ar_map,
+            self._identity_object,
+            self._identity_arrow,
             dom=Functor.dom if dom is None else dom,
             cod=Functor.cod if cod is None else cod,
         )
 
-    def object(self, ob):
+    def _identity_object(self, ob):
         del self
         return ob
 
-    def ar_map(self, ar):
+    def _identity_arrow(self, ar):
         del self
         return ar
 
-    def specialize(self, *args, **kwargs):
-        return self(*args, **kwargs)
+    def __call__(self, other):
+        if isinstance(other, SpecializerBox):
+            return self.specialize(other)
+        return super().__call__(other)
+
+    def specialize(self, other):
+        return other
 
 
 class Interpreter(Functor):
@@ -64,22 +69,27 @@ class Interpreter(Functor):
     def __init__(self, *, dom=None, cod=None):
         Functor.__init__(
             self,
-            self.object,
-            self.ar_map,
+            self._identity_object,
+            self._identity_arrow,
             dom=Functor.dom if dom is None else dom,
             cod=Functor.cod if cod is None else cod,
         )
 
-    def object(self, ob):
+    def _identity_object(self, ob):
         del self
         return ob
 
-    def ar_map(self, ar):
+    def _identity_arrow(self, ar):
         del self
         return ar
 
-    def interpret(self, *args, **kwargs):
-        return self(*args, **kwargs)
+    def __call__(self, other):
+        if isinstance(other, InterpreterBox):
+            return self.interpret(other)
+        return super().__call__(other)
+
+    def interpret(self, other):
+        return other
 
 
 class ProgramComputation(Diagram):

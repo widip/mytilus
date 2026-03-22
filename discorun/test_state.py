@@ -2,28 +2,50 @@ from discopy import python
 
 from discorun.comput import computer
 from discorun.comput.computer import Box, ComputableFunction, Computer, Copy, Program, ProgramTy, Ty
-from mytilus.comput.mytilus import io_ty
 from discorun.pcc.core import MonoidalComputer, ProgramClosedCategory
-from mytilus.pcc.loader import LOADER
-from mytilus.pcc.mytilus import SHELL
 from discorun.state.core import (
     Execution,
     InputOutputMap,
     Process,
+    ProcessRunner,
     StateUpdateMap,
     execute,
     fixed_state,
     simulate,
 )
-from mytilus.state.loader import LoaderExecution
-from mytilus.state.mytilus import ShellExecution
-from mytilus.state.python import ProcessRunner
-from mytilus.wire.loader import loader_stream_ty
 
 
 X, Y, A, B = Ty("X"), Ty("Y"), Ty("A"), Ty("B")
 P = ProgramTy("P")
 H_ty, L_ty = ProgramTy("H"), ProgramTy("L")
+
+
+class DummyRunner(ProcessRunner):
+    def __init__(self):
+        ProcessRunner.__init__(self, cod=python.Category())
+
+    def object(self, ob):
+        del ob
+        return object
+
+    def process_ar_map(self, box, dom, cod):
+        del box
+        return python.Function(lambda *_xs: None, dom, cod)
+
+    def state_update_ar(self, dom, cod):
+        return python.Function(lambda state, _input: state, dom, cod)
+
+    def output_ar(self, dom, cod):
+        return python.Function(lambda state, input_value: state(input_value), dom, cod)
+
+    def map_structural(self, box, dom, cod):
+        if isinstance(box, Copy):
+            return python.Function(lambda value: (value, value), dom, cod)
+        if isinstance(box, computer.Delete):
+            return python.Function(lambda _value: (), dom, cod)
+        if isinstance(box, computer.Swap):
+            return python.Function(lambda left, right: (right, left), dom, cod)
+        return None
 
 
 def test_eq_7_1_process_is_a_pair_of_functions():
@@ -78,11 +100,25 @@ def test_sec_7_3_program_execution_is_stateful():
 
     assert execution.dom == P @ A
     assert execution.cod == P @ B
-    assert execution.universal_ev() == fixed_state(Computer(P, A, B))
+    assert execution.universal_ev() == fixed_state(execution.output_diagram())
     assert execution.state_update_diagram() == StateUpdateMap("{}", P, A)
     assert execution.output_diagram() == InputOutputMap("{}", P, A, B)
     assert execution.state_update_diagram().cod == P
     assert execution.output_diagram().cod == B
+
+
+def test_eq_7_3_evaluator_is_execution_output_projection():
+    category = ProgramClosedCategory(P)
+    execution = category.execution(A, B)
+
+    assert category.evaluator(A, B) == execution.output_diagram()
+
+
+def test_eq_7_3_execution_is_fixed_state_of_output_projection():
+    category = ProgramClosedCategory(P)
+    execution = category.execution(A, B)
+
+    assert execution.universal_ev() == fixed_state(category.evaluator(A, B))
 
 
 def test_execution_universal_evaluator_is_overrideable_method():
@@ -99,13 +135,6 @@ def test_execution_universal_evaluator_is_overrideable_method():
 
 
 def test_process_runner_interprets_generic_state_projections():
-    class DummyRunner(ProcessRunner):
-        def __init__(self):
-            ProcessRunner.__init__(self)
-
-        def process_ar_map(self, box, dom, cod):
-            return python.Function(lambda *_xs: None, dom, cod)
-
     runner = DummyRunner()
     state_update = runner.ar_map(StateUpdateMap("q", X, A))
     output = runner.ar_map(InputOutputMap("q", X, A, B))
@@ -115,29 +144,11 @@ def test_process_runner_interprets_generic_state_projections():
 
 
 def test_process_runner_interprets_generic_structural_boxes():
-    class DummyRunner(ProcessRunner):
-        def __init__(self):
-            ProcessRunner.__init__(self)
-
-        def process_ar_map(self, box, dom, cod):
-            return python.Function(lambda *_xs: None, dom, cod)
-
     runner = DummyRunner()
 
     assert runner.ar_map(Copy(X))("value") == ("value", "value")
     assert runner.ar_map(computer.Delete(X))("value") == ()
     assert runner.ar_map(computer.Swap(X, Y))("left", "right") == ("right", "left")
-
-
-def test_loader_and_shell_projections_live_in_state():
-    assert LoaderExecution().state_update_diagram() == LOADER.execution(
-        loader_stream_ty, loader_stream_ty
-    ).state_update_diagram()
-    assert LoaderExecution().output_diagram() == LOADER.execution(
-        loader_stream_ty, loader_stream_ty
-    ).output_diagram()
-    assert ShellExecution().state_update_diagram() == SHELL.execution(io_ty, io_ty).state_update_diagram()
-    assert ShellExecution().output_diagram() == SHELL.execution(io_ty, io_ty).output_diagram()
 
 
 def test_sec_7_4_fixed_state_lifts_a_function_to_a_process():
@@ -172,9 +183,9 @@ def test_sec_8_3_program_closed_category_chooses_a_language_type():
     assert isinstance(low_level, MonoidalComputer)
     assert high_level.program_ty == H_ty
     assert low_level.program_ty == L_ty
-    assert high_level.evaluator(A, B) == Computer(H_ty, A, B)
-    assert low_level.evaluator(A, B) == Computer(L_ty, A, B)
-    assert high_level.execution(A, B).universal_ev() == fixed_state(Computer(H_ty, A, B))
-    assert low_level.execution(A, B).universal_ev() == fixed_state(Computer(L_ty, A, B))
+    assert high_level.evaluator(A, B) == high_level.execution(A, B).output_diagram()
+    assert low_level.evaluator(A, B) == low_level.execution(A, B).output_diagram()
+    assert high_level.execution(A, B).universal_ev() == fixed_state(high_level.evaluator(A, B))
+    assert low_level.execution(A, B).universal_ev() == fixed_state(low_level.evaluator(A, B))
     assert computer_category.ob == high_level.ob == low_level.ob
     assert computer_category.ar == high_level.ar == low_level.ar

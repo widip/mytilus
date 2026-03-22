@@ -3,7 +3,7 @@ import sys
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from discopy.utils import tuplify, untuplify
+import mytilus.state as mytilus_state
 
 from .files import diagram_draw, file_diagram, source_diagram
 from .interactive import (
@@ -16,7 +16,6 @@ from .interactive import (
     emit_shell_source,
     read_shell_source,
 )
-from .state.python import SHELL_INTERPRETER
 from .state.mytilus import run_terminal_command, terminal_passthrough_command
 
 
@@ -39,12 +38,16 @@ def execute_shell_diagram(diagram, stdin_text: str | None):
             return None
     if stdin_text is None:
         stdin_text = ""
-    return SHELL_INTERPRETER(diagram)(stdin_text)
+    return mytilus_state.SHELL_INTERPRETER(diagram)(stdin_text)
 
 
 def emit_mytilus_result(run_res):
     """Emit one mytilus file or inline-command result."""
-    print(*(tuple(x.rstrip() for x in tuplify(untuplify(run_res)) if x)), sep="\n")
+    for value in mytilus_state.runtime_values(run_res):
+        if not value:
+            continue
+        sys.stdout.write(value)
+    sys.stdout.flush()
 
 
 class ShellHandler(FileSystemEventHandler):
@@ -111,7 +114,7 @@ def run_shell_source(source, file_name, draw):
         diagram_draw(path, source_d)
     result_ev = execute_shell_diagram(source_d, None)
     if result_ev is not None:
-        print(result_ev)
+        emit_mytilus_result(result_ev)
 
 
 def shell_main(file_name, draw):

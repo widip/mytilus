@@ -1,10 +1,11 @@
 from discorun.comput.computer import Ty
 from mytilus.comput import python as comput_python
 from mytilus.comput.mytilus import Command, Empty, Literal, ShellProgram, io_ty, shell_program_ty
+import mytilus.metaprog as mytilus_metaprog
 from mytilus.metaprog import python as metaprog_python
-from mytilus.pcc.mytilus import SHELL
+from mytilus.pcc import SHELL
 from discorun.state import core as state_core
-from mytilus.state.python import SHELL_INTERPRETER, SHELL_PROGRAM_TO_PYTHON
+from mytilus.state import SHELL_INTERPRETER, SHELL_PROGRAM_TO_PYTHON
 from mytilus.state.mytilus import (
     Parallel,
     Pipeline,
@@ -209,7 +210,7 @@ def test_shell_to_python_program_maps_shell_evaluator_box():
 
     mapped = transform(evaluator)
 
-    assert mapped == metaprog_python.PYTHON_PROGRAMS.evaluator(io_ty, io_ty)
+    assert mapped == mytilus_metaprog.PYTHON_PROGRAMS.evaluator(io_ty, io_ty)
 
 
 def test_shell_to_python_program_maps_process_projection_boxes():

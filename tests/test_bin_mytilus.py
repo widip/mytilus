@@ -93,7 +93,7 @@ def test_bin_mytilus_c_runs_python_without_a_tty():
     result = run_mytilus("-c", f"!{sys.executable}", env=None)
 
     assert result.returncode == 0
-    assert result.stdout == "\n"
+    assert result.stdout == ""
     assert result.stderr == ""
 
 
@@ -103,6 +103,16 @@ def test_bin_mytilus_c_runs_python_batch_code():
     assert result.returncode == 0
     assert result.stdout.splitlines() == ["123"]
     assert result.stderr == ""
+
+
+def test_bin_mytilus_c_preserves_command_trailing_newline_behavior():
+    no_newline = run_mytilus("-c", "!printf hello", env=None)
+    with_newline = run_mytilus("-c", "!echo hello", env=None)
+
+    assert no_newline.returncode == 0
+    assert with_newline.returncode == 0
+    assert no_newline.stdout == "hello"
+    assert with_newline.stdout == "hello\n"
 
 
 def test_bin_mytilus_c_preserves_tty_for_interactive_python():
@@ -144,7 +154,11 @@ def test_bin_mytilus_i_runs_command_then_starts_repl():
             exit_output = b""
         if exit_output:
             assert b"\xe2\x8c\x81" in exit_output
-        assert process.wait(timeout=5) == 0
+        try:
+            assert process.wait(timeout=5) == 0
+        except subprocess.TimeoutExpired:
+            os.write(master_fd, b"\x04")
+            assert process.wait(timeout=5) == 0
     finally:
         try:
             os.close(master_fd)

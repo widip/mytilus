@@ -77,7 +77,7 @@ class Execution(Process):
         """
         Eq. 7.3: program execution is the evaluator with output type P x B.
         """
-        return fixed_state(computer.Computer(self.X, self.A, self.B))
+        return fixed_state(self.output_diagram())
 
     def specialize(self):
         return self.universal_ev()
@@ -171,10 +171,10 @@ class ProcessSimulation(metaprog_core.Specializer):
             self.simulation(output.B),
         )
 
-    def object(self, ob):
+    def _identity_object(self, ob):
         return self.simulation(ob)
 
-    def ar_map(self, ar):
+    def _identity_arrow(self, ar):
         if isinstance(ar, StateUpdateMap):
             return self.sta(ar)
         if isinstance(ar, InputOutputMap):
@@ -201,7 +201,7 @@ def execute(Q: computer.Diagram, A: computer.Ty, B: computer.Ty):
     """
     Sec. 7.3: execute an X-parameterized program as a stateful process.
     """
-    stateful_evaluator = fixed_state(ProgramClosedCategory(Q.cod).evaluator(A, B))
+    stateful_evaluator = ProgramClosedCategory(Q.cod).execution(A, B).specialize()
     return Q @ A >> simulate(stateful_evaluator, computer.Id(Q.cod))
 
 

@@ -1,11 +1,7 @@
 import pytest
-from nx_yaml import nx_compose_all
 
 from discorun.comput.computer import *
-from mytilus.metaprog.mytilus import ShellSpecializer
 from discorun.metaprog.core import MetaprogramComputation, MetaprogramFunctor, ProgramComputation, ProgramFunctor, Specializer
-from mytilus.metaprog.hif import HIFToLoader
-from mytilus.state.loader import LoaderToShell
 from os import path
 
 
@@ -38,7 +34,6 @@ h_ev = ComputableFunction("{H}", X, A, B)
 l_ev = ComputableFunction("{L}", X, A, B)
 H_to_L = ProgramComputation("H", L_ty, X, A, B)
 L_to_H = ProgramComputation("L", H_ty, X, A, B)
-SHELL_SPECIALIZER = ShellSpecializer()
 
 
 def test_sec_6_2_2(request):
@@ -86,13 +81,8 @@ def test_fig_6_3_eq_1(request):
 def test_specializers_are_unit_metaprograms_with_partial_evaluators(request):
     request.node.draw_objects = (h_ev, l_ev, H_to_L)
 
-    graph = nx_compose_all("a")
-    loader_to_shell = LoaderToShell()
+    specializer = Specializer()
 
-    assert Specializer().metaprogram_dom() == Ty()
-    assert HIFToLoader().metaprogram_dom() == Ty()
-    assert loader_to_shell.metaprogram_dom() == Ty()
-    assert SHELL_SPECIALIZER.metaprogram_dom() == Ty()
-    assert isinstance(loader_to_shell, Specializer)
-    assert isinstance(SHELL_SPECIALIZER, Specializer)
-    assert HIFToLoader().specialize(graph) == HIFToLoader()(graph)
+    assert specializer.metaprogram_dom() == Ty()
+    assert specializer(A @ B) == A @ B
+    assert specializer.specialize(H_to_L) == H_to_L

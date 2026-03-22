@@ -1,4 +1,4 @@
-from discorun.comput.computer import Computer, ProgramTy, Ty
+from discorun.comput.computer import ProgramTy, Ty
 from discorun.pcc.core import ProgramClosedCategory
 
 
@@ -7,18 +7,24 @@ H_ty, L_ty = ProgramTy("H"), ProgramTy("L")
 
 def test_high_level_interpreter_is_typed_evaluator():
     A, B = Ty("A"), Ty("B")
-    evaluator = ProgramClosedCategory(H_ty).evaluator(A, B)
-    assert isinstance(evaluator, Computer)
-    assert evaluator.dom == Computer(H_ty, A, B).dom
-    assert evaluator.cod == Computer(H_ty, A, B).cod
+    category = ProgramClosedCategory(H_ty)
+    evaluator = category.evaluator(A, B)
+    execution = category.execution(A, B)
+
+    assert evaluator == execution.output_diagram()
+    assert evaluator.dom == H_ty @ A
+    assert evaluator.cod == B
 
 
 def test_low_level_interpreter_is_typed_evaluator():
     A, B = Ty("A"), Ty("B")
-    evaluator = ProgramClosedCategory(L_ty).evaluator(A, B)
-    assert isinstance(evaluator, Computer)
-    assert evaluator.dom == Computer(L_ty, A, B).dom
-    assert evaluator.cod == Computer(L_ty, A, B).cod
+    category = ProgramClosedCategory(L_ty)
+    evaluator = category.evaluator(A, B)
+    execution = category.execution(A, B)
+
+    assert evaluator == execution.output_diagram()
+    assert evaluator.dom == L_ty @ A
+    assert evaluator.cod == B
 
 
 def test_program_closed_simulation_transports_program_types_and_evaluators():

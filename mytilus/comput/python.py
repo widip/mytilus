@@ -1,43 +1,146 @@
-from discopy import closed, markov, monoidal
+from functools import partial
+from collections.abc import Callable
+
+from discopy import python
+from discopy.utils import tuplify, untuplify
 
 from discorun.comput import computer
+from discorun.metaprog import core as metaprog_core
+from discorun.wire.services import DataServiceFunctor
 
 
 program_ty = computer.ProgramTy("python")
 
 
-class PythonComputationCategory(closed.Category, markov.Category):
-    """"""
+def _apply_static_input(program, static_input, runtime_input):
+    return program(
+        static_input,
+        untuplify(tuplify(runtime_input)),
+    )
 
 
-class PythonComputationFunctor(monoidal.Functor):
-    """
-    Transforms computer diagrams into lower-level runnable diagrams.
-    Preserves computations including closed and markov boxes.
-    """
+def _constant(value):
+    return tuplify((value,))
+
+
+def uev(function, argument):
+    """DisCoPy-level universal evaluator ``{} : P x A -> B``."""
+    return tuplify(
+        (
+            untuplify(tuplify(function))(
+                untuplify(tuplify(argument)),
+            ),
+        ),
+    )
+
+
+def run(function, argument):
+    """Evaluate one program and return the underlying Python value."""
+    return untuplify(uev(function, argument))
+
+
+def pev(program, static_input):
+    """DisCoPy-level partial evaluator ``[] : P x X -> P``."""
+    program = untuplify(tuplify(program))
+    static_input = untuplify(tuplify(static_input))
+    return tuplify((partial(_apply_static_input, program, static_input),))
+
+
+def runtime_value_box(value, *, name=None, cod=None):
+    """Build one closed computation box carrying a runtime value."""
+    cod = program_ty if cod is None else cod
+    box = computer.Box(repr(value) if name is None else name, computer.Ty(), cod)
+    box.value = value
+    return box
+
+
+class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
+    """Interpret evaluators, specializers, and interpreters as Python functions."""
 
     def __init__(self):
-        monoidal.Functor.__init__(
+        metaprog_core.Specializer.__init__(
             self,
-            self.ob_map,
-            self.ar_map,
             dom=computer.Category(),
-            cod=PythonComputationCategory(),
+            cod=python.Category(),
         )
 
-    def __call__(self, other):
-        if hasattr(other, "partial_ev") and callable(other.partial_ev) and hasattr(other, "universal_ev") and callable(other.universal_ev):
-            arg = other.universal_ev()
-            return closed.Curry(arg, len(arg.dom))
-        if hasattr(other, "universal_ev") and callable(other.universal_ev):
-            return other.universal_ev()
-        return other
+    def _identity_object(self, ob):
+        del ob
+        return object
 
-    def ob_map(self, ob):
-        return ob
+    def _is_evaluator_box(self, box):
+        return isinstance(box, computer.Computer) or (
+            getattr(box, "process_name", None) == "{}"
+            and isinstance(getattr(box, "X", None), computer.ProgramTy)
+            and hasattr(box, "A")
+            and hasattr(box, "B")
+            and getattr(box, "dom", None) == box.X @ box.A
+            and getattr(box, "cod", None) == box.B
+        )
 
-    def ar_map(self, ar):
-        return ar
+    def map_computation(self, box, dom, cod):
+        if self._is_evaluator_box(box):
+            return python.Function(uev, dom, cod)
+        return None
+
+    def _identity_arrow(self, box):
+        dom, cod = self(box.dom), self(box.cod)
+        mapped = self.map_computation(box, dom, cod)
+        if mapped is not None:
+            return mapped
+        return box
+
+    def specialize(self, other):
+        if not isinstance(other, metaprog_core.SpecializerBox):
+            return metaprog_core.Specializer.specialize(self, other)
+        dom, cod = self(other.dom), self(other.cod)
+        if other.dom == computer.Ty() and other.cod == program_ty:
+            return python.Function(lambda: pev, dom, cod)
+        raise TypeError(f"unsupported Python specializer box: {other!r}")
+
+    def interpret(self, other):
+        if not isinstance(other, metaprog_core.InterpreterBox):
+            return metaprog_core.Interpreter.interpret(self, other)
+        dom, cod = self(other.dom), self(other.cod)
+        if other.dom == computer.Ty() and other.cod == program_ty:
+            return python.Function(lambda: uev, dom, cod)
+        raise TypeError(f"unsupported Python interpreter box: {other!r}")
 
 
-to_py = PythonComputationFunctor()
+class PythonDataServices(DataServiceFunctor):
+    """Interpret structural services and closed computer boxes as Python functions."""
+
+    def __init__(self):
+        DataServiceFunctor.__init__(
+            self,
+            dom=computer.Category(),
+            cod=python.Category(),
+        )
+
+    def object(self, ob):
+        del ob
+        return object
+
+    def copy_ar(self, dom, cod):
+        return python.Function.copy(dom, n=2)
+
+    def delete_ar(self, dom, cod):
+        return python.Function.discard(dom)
+
+    def swap_ar(self, left, right, dom, cod):
+        del dom, cod
+        return python.Function.swap(left, right)
+
+    def data_ar(self, box, dom, cod):
+        if isinstance(box, computer.Box) and box.dom == computer.Ty() and hasattr(box, "value"):
+            return python.Function(partial(_constant, box.value), dom, cod)
+        raise TypeError(f"unsupported Python data-service box: {box!r}")
+
+
+class ShellPythonDataServices(PythonDataServices):
+    """Python data services with shell-program object interpretation."""
+
+    def object(self, ob):
+        if isinstance(ob, computer.ProgramOb):
+            return Callable
+        return str

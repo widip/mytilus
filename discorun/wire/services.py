@@ -1,6 +1,6 @@
-"""Chapter 1 wire services: copying, deleting, and swapping."""
+"""Chapter 1 wire services: copying, deleting, swapping, and their functors."""
 
-from .functions import Box
+from .functions import Box, Functor
 from .types import Ty
 
 
@@ -31,3 +31,44 @@ class Swap(Box):
             draw_as_wires=True,
             drawing_name="",
         )
+
+
+class DataServiceFunctor(Functor):
+    """Functor interpreting copy, delete, and swap in a target category."""
+
+    def __init__(self, *, dom=None, cod=None):
+        Functor.__init__(
+            self,
+            self.object,
+            self.ar_map,
+            dom=Functor.dom if dom is None else dom,
+            cod=Functor.cod if cod is None else cod,
+        )
+
+    def object(self, ob):
+        del self
+        return ob
+
+    def copy_ar(self, dom, cod):
+        raise TypeError(f"copy service is undefined for dom={dom!r}, cod={cod!r}")
+
+    def delete_ar(self, dom, cod):
+        raise TypeError(f"delete service is undefined for dom={dom!r}, cod={cod!r}")
+
+    def swap_ar(self, left, right, dom, cod):
+        raise TypeError(
+            f"swap service is undefined for left={left!r}, right={right!r}, dom={dom!r}, cod={cod!r}"
+        )
+
+    def data_ar(self, box, dom, cod):
+        raise TypeError(f"unsupported data-service box: {box!r}")
+
+    def ar_map(self, box):
+        dom, cod = self(box.dom), self(box.cod)
+        if isinstance(box, Copy):
+            return self.copy_ar(dom, cod)
+        if isinstance(box, Delete):
+            return self.delete_ar(dom, cod)
+        if isinstance(box, Swap):
+            return self.swap_ar(self(box.left), self(box.right), dom, cod)
+        return self.data_ar(box, dom, cod)

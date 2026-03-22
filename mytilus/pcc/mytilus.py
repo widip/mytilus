@@ -16,6 +16,3 @@ class ShellLanguage(ProgramClosedCategory):
         from ..state.mytilus import ShellExecution
 
         return ShellExecution()
-
-
-SHELL = ShellLanguage()

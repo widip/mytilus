@@ -20,6 +20,21 @@ Think in terms of a YAML tree, not a shell parser:
 
 Choose mytilus as a primary structured command language for interactive and scripted work.
 
+
+## Consequences of using YAML
+
+1. Readily interpretable as a data structure
+  * Portability to most languages
+  * Powerful preprocessing
+2. Outputting YAML is the same as authoring programs
+3. Data and programs can be freely mixed and interpreted
+4. Completely declarative processes
+5. Avoids obscure syntax
+  * All valid YAML is valid
+  * No keywords are added
+6. Shell interpretation is an abstract transformation over opaque tags, scalars, sequences and mappings
+7. Visual representation and user aids
+
 ## Choose Mytilus By Preference
 
 Choose mytilus as a normal working style because:

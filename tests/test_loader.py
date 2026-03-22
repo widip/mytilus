@@ -6,10 +6,10 @@ from discorun.comput.computer import Ty
 from mytilus.comput.loader import LoaderLiteral, loader_program_ty
 from mytilus.comput.mytilus import Command, Literal, io_ty, shell_program_ty
 from mytilus.metaprog.hif import HIFToLoader
-from mytilus.pcc.mytilus import SHELL
+from mytilus.pcc import SHELL
 from discorun.state.core import InputOutputMap, StateUpdateMap
+from mytilus.state import SHELL_INTERPRETER
 from mytilus.state.loader import LoaderExecution, LoaderToShell
-from mytilus.state.python import SHELL_INTERPRETER
 from mytilus.state.mytilus import Parallel, Pipeline
 from mytilus.wire.hif import HyperGraph
 from mytilus.wire.loader import LoaderMapping, LoaderScalar, LoaderSequence, loader_stream_ty

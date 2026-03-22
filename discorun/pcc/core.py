@@ -19,7 +19,8 @@ class ProgramClosedCategory(MonoidalComputer):
         MonoidalComputer.__init__(self)
 
     def evaluator(self, A: computer.Ty, B: computer.Ty):
-        return computer.Computer(self.program_ty, A, B)
+        # Eq. 7.3 / Eq. 8.1 interface: evaluator is the output projection of execution.
+        return self.execution(A, B).output_diagram()
 
     def run(self, A: computer.Ty, B: computer.Ty):
         """Sec. 8.3 c'': program execution machine ``Run``."""
@@ -33,7 +34,16 @@ class ProgramClosedCategory(MonoidalComputer):
 
     def is_evaluator(self, arrow):
         """Check whether ``arrow`` is this category's evaluator box."""
-        return isinstance(arrow, computer.Computer) and self.is_program(arrow.P)
+        if isinstance(arrow, computer.Computer) and self.is_program(arrow.P):
+            return True
+        return (
+            getattr(arrow, "process_name", None) is not None
+            and self.is_program(getattr(arrow, "X", None))
+            and hasattr(arrow, "A")
+            and hasattr(arrow, "B")
+            and getattr(arrow, "dom", None) == arrow.X @ arrow.A
+            and getattr(arrow, "cod", None) == arrow.B
+        )
 
     def _simulate_type(self, ty, codomain: "ProgramClosedCategory"):
         """Transport program occurrences in a type along a language simulation."""
