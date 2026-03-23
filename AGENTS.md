@@ -20,7 +20,7 @@ When `mytilus` is used as a login shell, it will automatically receive the `-l` 
 To verify that the Mytilus environment is correctly active as the default `sh` shell, run:
 
 ```bash
-/app/startup-check.sh
+/app/bin/startup-check.sh
 ```
 
 This script uses `sh -c "!echo ..."` to confirm that the current shell process is Mytilus.
