@@ -25,6 +25,13 @@ from .watch import shell_main, mytilus_main, mytilus_source_main
 
 
 def launch_shell(draw):
+    if not os.path.exists(DEFAULT_SHELL_SOURCE):
+        # Ensure the directory exists if we want to support creating the file,
+        # but for now let's just use a fallback or ensure it doesn't crash.
+        # The current shell_main will try to read it.
+        os.makedirs(os.path.dirname(DEFAULT_SHELL_SOURCE), exist_ok=True)
+        with open(DEFAULT_SHELL_SOURCE, 'w') as f:
+            f.write("# Mytilus default shell source\n")
     shell_main(DEFAULT_SHELL_SOURCE, draw)
 
 
@@ -65,6 +72,11 @@ def build_arguments(args):
         "-i", "--interactive",
         action="store_true",
         help="Enter the mytilus REPL after running a file or inline command"
+    )
+    parser.add_argument(
+        "-l", "--login",
+        action="store_true",
+        help="Ignored; for compatibility with login shells"
     )
     parser.add_argument(
         "file_name",
