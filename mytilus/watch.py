@@ -43,10 +43,12 @@ def execute_shell_diagram(diagram, stdin_text: str | None):
 
 def emit_mytilus_result(run_res):
     """Emit one mytilus file or inline-command result."""
-    for value in mytilus_state.runtime_values(run_res):
-        if not value:
-            continue
-        sys.stdout.write(value)
+    with open("mytilus.log", "a") as log:
+        for value in mytilus_state.runtime_values(run_res):
+            if not value:
+                continue
+            sys.stdout.write(value)
+            log.write(value)
     sys.stdout.flush()
 
 
