@@ -1,12 +1,12 @@
 from pathlib import Path
 import sys
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
 
 import mytilus.state as mytilus_state
+import yaml
 
 from .files import diagram_draw, file_diagram, source_diagram
 from .interactive import (
+    CTRL_C,
     CTRL_D,
     CTRL_J,
     CTRL_M,
@@ -16,7 +16,10 @@ from .interactive import (
     emit_shell_source,
     read_shell_source,
 )
-from .state.mytilus import run_terminal_command, terminal_passthrough_command
+from .state.shell import run_terminal_command, terminal_passthrough_command
+
+
+SHELL_BANNER = "See [SKILL.md](mytilus/SKILL.md) for mytilus authoring and REPL usage."
 
 
 def watch_log(message: str):
@@ -52,21 +55,23 @@ def emit_mytilus_result(run_res):
     sys.stdout.flush()
 
 
-class ShellHandler(FileSystemEventHandler):
-    """Reload the shell on change."""
-
-    def on_modified(self, event):
-        if event.src_path.endswith(".yaml"):
-            watch_log(f"reloading {event.src_path}")
-            fd = file_diagram(str(event.src_path))
-            diagram_draw(Path(event.src_path), fd)
-            diagram_draw(Path(event.src_path + ".2"), fd)
-
-
 def watch_main():
     """the process manager for the reader and """
     #  TODO watch this path to reload changed files,
     # returning an IO as always and maintaining the contract.
+    from watchdog.events import FileSystemEventHandler
+    from watchdog.observers import Observer
+
+    class ShellHandler(FileSystemEventHandler):
+        """Reload the shell on change."""
+
+        def on_modified(self, event):
+            if event.src_path.endswith(".yaml"):
+                watch_log(f"reloading {event.src_path}")
+                fd = file_diagram(str(event.src_path))
+                diagram_draw(Path(event.src_path), fd)
+                diagram_draw(Path(event.src_path + ".2"), fd)
+
     watch_log("watching for changes in current path")
     observer = Observer()
     shell_handler = ShellHandler()
@@ -85,20 +90,26 @@ class StoppedObserver:
 class ShellSession:
     """State holder for one interactive mytilus shell session."""
 
-    def __init__(self, file_name, draw):
+    def __init__(self, file_name, draw, watch, error_writer=None):
         self.file_name = file_name
         self.draw = draw
+        self.watch = watch
+        self.error_writer = sys.stderr.write if error_writer is None else error_writer
         self.observer = StoppedObserver()
 
     def read_source(self):
         self.stop_observer()
-        self.observer = watch_main()
+        if self.watch:
+            self.observer = watch_main()
         return read_shell_source(self.file_name, default_shell_source_reader)
 
     def execute_source(self, source):
         try:
             emit_shell_source(source)
-            run_shell_source(source, self.file_name, self.draw)
+            try:
+                run_shell_source(source, self.file_name, self.draw)
+            except yaml.YAMLError as exc:
+                self.error_writer(f"{exc.__class__.__name__}: {exc}\n")
         finally:
             self.stop_observer()
 
@@ -119,8 +130,8 @@ def run_shell_source(source, file_name, draw):
         emit_mytilus_result(result_ev)
 
 
-def shell_main(file_name, draw):
-    session = ShellSession(file_name, draw)
+def shell_main(file_name, draw, watch=False):
+    session = ShellSession(file_name, draw, watch)
 
     def read_source(prompt):
         del prompt
@@ -134,7 +145,7 @@ def shell_main(file_name, draw):
     )
 
     try:
-        console.interact(banner="", exitmsg="")
+        console.interact(banner=SHELL_BANNER, exitmsg="")
     finally:
         session.stop_observer()
 

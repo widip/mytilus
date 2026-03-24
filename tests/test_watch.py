@@ -4,12 +4,12 @@ import pytest
 from nx_yaml import nx_compose_all
 
 import mytilus.watch as watch
-from mytilus.comput.mytilus import Command, io_ty
+from mytilus.comput.shell import Command, io_ty
 from mytilus.metaprog.hif import HIFToLoader
 from mytilus.pcc import SHELL
 from mytilus.state.loader import LoaderToShell
-from mytilus.state.mytilus import terminal_passthrough_command
-from mytilus.watch import CTRL_D, CTRL_J, CTRL_M, apply_tty_input, emit_shell_source, read_shell_source, watch_log
+from mytilus.state.shell import terminal_passthrough_command
+from mytilus.watch import CTRL_C, CTRL_D, CTRL_J, CTRL_M, apply_tty_input, emit_shell_source, read_shell_source, watch_log
 
 
 def test_apply_tty_input_uses_ctrl_j_as_newline_and_ctrl_m_as_submit():
@@ -35,6 +35,13 @@ def test_apply_tty_input_ctrl_d_on_empty_buffer_is_eof():
 def test_apply_tty_input_ctrl_d_on_non_empty_buffer_submits():
     buffer = ["a"]
     assert apply_tty_input(buffer, CTRL_D) == ("submit", None)
+
+
+def test_apply_tty_input_ctrl_c_interrupts_without_mutating_buffer():
+    buffer = ["a"]
+
+    assert apply_tty_input(buffer, CTRL_C) == ("interrupt", None)
+    assert buffer == ["a"]
 
 
 def test_apply_tty_input_backspace_removes_last_character():
@@ -123,10 +130,6 @@ def test_execute_shell_diagram_keeps_nested_command_substitution_captured(monkey
 
 
 def test_shell_main_propagates_invalid_command_errors(monkeypatch, capsys):
-    class DummyObserver:
-        def stop(self):
-            return None
-
     sources = iter(("!git status --short\n", "!echo ok\n"))
 
     def fake_read_line():
@@ -135,7 +138,6 @@ def test_shell_main_propagates_invalid_command_errors(monkeypatch, capsys):
         except StopIteration as exc:
             raise EOFError from exc
 
-    monkeypatch.setattr(watch, "watch_main", lambda: DummyObserver())
     monkeypatch.setattr(watch, "default_shell_source_reader", fake_read_line)
 
     with pytest.raises(subprocess.CalledProcessError):
@@ -143,5 +145,29 @@ def test_shell_main_propagates_invalid_command_errors(monkeypatch, capsys):
 
     captured = capsys.readouterr()
 
+    assert watch.SHELL_BANNER in captured.err
     assert "!git status --short" in captured.out
     assert "!echo ok" not in captured.out
+
+
+def test_shell_main_reports_yaml_reader_errors_and_continues(monkeypatch, capsys):
+    sources = iter(("\x1b[200~!echo bad\n", "!echo ok\n"))
+
+    def fake_read_line():
+        try:
+            return next(sources)
+        except StopIteration as exc:
+            raise EOFError from exc
+
+    monkeypatch.setattr(watch, "default_shell_source_reader", fake_read_line)
+
+    with pytest.raises(SystemExit) as excinfo:
+        watch.shell_main("bin/yaml/shell.yaml", draw=False)
+
+    captured = capsys.readouterr()
+
+    assert excinfo.value.code == 0
+    assert "ReaderError" in captured.err
+    assert watch.SHELL_BANNER in captured.err
+    assert "!echo ok" in captured.out
+    assert "ok" in captured.out

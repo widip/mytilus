@@ -22,8 +22,11 @@ def after_each_test(request):
         
     left, right = data
     
-    left.draw(path=svg_path(f"{test_name}_left.svg"))
-    right.draw(path=svg_path(f"{test_name}_right.svg"))
+    from pathlib import Path
+    from mytilus.files import diagram_draw
+    
+    diagram_draw(Path(svg_path(f"{test_name}_left.svg")), left)
+    diagram_draw(Path(svg_path(f"{test_name}_right.svg")), right)
 
 def test_fig_2_7_compile_sequential_to_left_side(request):
     """

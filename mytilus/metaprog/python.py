@@ -9,11 +9,13 @@ class PythonRuntime(
 ):
     """Runtime functor from computer diagrams to executable Python functions."""
 
+    object_interpreter = staticmethod(comput_python.PythonDataServices.object)
+
     def __init__(self):
         comput_python.PythonComputations.__init__(self)
 
     def _identity_object(self, ob):
-        return comput_python.PythonDataServices.object(self, ob)
+        return self.object_interpreter(self, ob)
 
     def _identity_arrow(self, box):
         dom, cod = self(box.dom), self(box.cod)

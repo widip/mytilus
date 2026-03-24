@@ -3,7 +3,7 @@ from nx_yaml import nx_compose_all
 from discorun.comput.computer import Ty
 from discorun.metaprog.core import Specializer
 from mytilus.metaprog.hif import HIFToLoader
-from mytilus.metaprog.mytilus import ShellSpecializer
+from mytilus.metaprog.shell import ShellSpecializer
 from mytilus.state.loader import LoaderToShell
 
 

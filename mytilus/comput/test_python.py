@@ -18,6 +18,12 @@ def test_run_unwraps_one_uev_result_for_runtime_use():
     assert result == ("a", "b", "c")
 
 
+def test_runtime_values_reuses_python_tuple_convention():
+    assert comput_python.runtime_values("x") == ("x",)
+    assert comput_python.runtime_values(("x",)) == ("x",)
+    assert comput_python.runtime_values(("a", "b")) == ("a", "b")
+
+
 def test_pev_returns_tuple_wrapped_residual_program():
     residual, = comput_python.pev(lambda static_input, runtime_input: static_input + runtime_input, 7)
 

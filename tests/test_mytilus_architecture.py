@@ -11,6 +11,7 @@ PACKAGE_SINGLETONS = {
     "LOADER",
     "SHELL",
     "SHELL_SPECIALIZER",
+    "SHELL_RUNTIME",
     "SHELL_PROGRAM_TO_PYTHON",
     "SHELL_PYTHON_RUNTIME",
     "SHELL_INTERPRETER",
@@ -128,6 +129,25 @@ def test_mytilus_layer_dependency_direction():
                     f"{path} violates layer order {LAYER_ORDER}: "
                     f"{current_module} imports {imported_module}"
                 )
+
+
+def test_python_named_modules_do_not_import_shell_named_modules():
+    for path in iter_mytilus_python_files():
+        if path.name != "python.py":
+            continue
+
+        current_module = module_name(path)
+        tree = ast.parse(path.read_text(), filename=str(path))
+        for node in ast.walk(tree):
+            imported_modules: list[str] = []
+            if isinstance(node, ast.Import):
+                imported_modules.extend(alias.name for alias in node.names)
+            if isinstance(node, ast.ImportFrom):
+                imported_modules.append(resolve_imported_module(current_module, node))
+
+            for imported_module in imported_modules:
+                if imported_module.endswith(".shell"):
+                    raise AssertionError(f"{path} imports shell module {imported_module}")
 
 
 def _canonical_module(path: Path) -> str:

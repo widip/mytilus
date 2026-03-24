@@ -4,16 +4,16 @@ from nx_yaml import nx_compose_all
 
 from discorun.comput.computer import Ty
 from mytilus.comput.loader import LoaderLiteral, loader_program_ty
-from mytilus.comput.mytilus import Command, Literal, io_ty, shell_program_ty
+from mytilus.comput.shell import Command, Literal, io_ty, shell_program_ty
 from mytilus.metaprog.hif import HIFToLoader
 from mytilus.pcc import SHELL
 from discorun.state.core import InputOutputMap, StateUpdateMap
 from mytilus.state import SHELL_INTERPRETER
 from mytilus.state.loader import LoaderExecution, LoaderToShell
-from mytilus.state.mytilus import Parallel, Pipeline
+from mytilus.state.shell import Parallel, Pipeline
 from mytilus.wire.hif import HyperGraph
 from mytilus.wire.loader import LoaderMapping, LoaderScalar, LoaderSequence, loader_stream_ty
-from mytilus.wire.mytilus import shell_id
+from mytilus.wire.shell import shell_id
 
 
 def test_loader_empty_stream_is_identity():

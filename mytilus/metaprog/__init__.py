@@ -7,11 +7,11 @@ from discorun.pcc.core import ProgramClosedCategory
 from discorun.metaprog import core as metaprog_core
 
 import mytilus.comput.python as comput_python
-import mytilus.metaprog.mytilus as metaprog_mytilus
+import mytilus.metaprog.shell as metaprog_shell
 import mytilus.metaprog.python as metaprog_python
 
 
-SHELL_SPECIALIZER = metaprog_mytilus.ShellSpecializer()
+SHELL_SPECIALIZER = metaprog_shell.ShellSpecializer()
 
 PYTHON_PROGRAMS = ProgramClosedCategory(comput_python.program_ty)
 PYTHON_SPECIALIZER_BOX = metaprog_core.SpecializerBox(comput_python.program_ty, name="S")

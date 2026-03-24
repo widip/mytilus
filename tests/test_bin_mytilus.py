@@ -145,7 +145,49 @@ def test_bin_mytilus_i_runs_command_then_starts_repl():
         combined_output = read_pty_until(master_fd, b"--- !bin/yaml/shell.yaml", PTY_TIMEOUT_SECONDS)
 
         assert b"hello-from-interactive" in combined_output
-        assert b"watching for changes in current path" in combined_output
+        assert b"See [SKILL.md](mytilus/SKILL.md) for mytilus authoring and REPL usage." in combined_output
+        assert b"watching for changes in current path" not in combined_output
+
+        os.write(master_fd, b"\x04")
+        try:
+            exit_output = read_pty_until(master_fd, b"\xe2\x8c\x81", 1.0)
+        except AssertionError:
+            exit_output = b""
+        if exit_output:
+            assert b"\xe2\x8c\x81" in exit_output
+        try:
+            assert process.wait(timeout=5) == 0
+        except subprocess.TimeoutExpired:
+            os.write(master_fd, b"\x04")
+            assert process.wait(timeout=5) == 0
+    finally:
+        try:
+            os.close(master_fd)
+        except OSError:
+            pass
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+
+
+def test_bin_mytilus_repl_ctrl_c_interrupts_current_document_and_recovers():
+    process, master_fd = run_mytilus_pty(env=None)
+
+    try:
+        startup_output = read_pty_until(master_fd, b"--- !bin/yaml/shell.yaml", PTY_TIMEOUT_SECONDS)
+
+        assert b"See [SKILL.md](mytilus/SKILL.md) for mytilus authoring and REPL usage." in startup_output
+
+        os.write(master_fd, b"!echo partial")
+        os.write(master_fd, b"\x03")
+        interrupted_output = read_pty_until(master_fd, b"--- !bin/yaml/shell.yaml", PTY_TIMEOUT_SECONDS)
+
+        assert b"KeyboardInterrupt" in interrupted_output
+
+        os.write(master_fd, b"!echo recovered\r")
+        recovered_output = read_pty_until(master_fd, b"recovered", PTY_TIMEOUT_SECONDS)
+
+        assert b"recovered" in recovered_output
 
         os.write(master_fd, b"\x04")
         try:

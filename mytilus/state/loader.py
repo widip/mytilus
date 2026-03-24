@@ -4,12 +4,12 @@ import mytilus.pcc as mytilus_pcc
 
 from ..comput import loader as loader_lang
 from ..comput.loader import loader_program_ty
-from ..comput import mytilus as shell_lang
+from ..comput import shell as shell_lang
 from ..wire import loader as loader_wire
 from ..wire.loader import loader_stream_ty
-from ..wire import mytilus as shell_wire
+from ..wire import shell as shell_wire
 from discorun.state.core import Execution, ProcessSimulation
-from .mytilus import Parallel, Pipeline, SubstitutionParallel, SubstitutionPipeline
+from .shell import Parallel, Pipeline, SubstitutionParallel, SubstitutionPipeline
 
 
 class LoaderExecution(Execution):

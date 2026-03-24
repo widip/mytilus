@@ -1,6 +1,6 @@
-from mytilus.comput.mytilus import io_ty as shell_io_ty
+from mytilus.comput.shell import io_ty as shell_io_ty
 from mytilus.wire.loader import loader_id, loader_stream_ty
-from mytilus.wire.mytilus import Copy as ShellCopy, shell_id
+from mytilus.wire.shell import Copy as ShellCopy, shell_id
 
 
 def test_loader_wire_module_exports_loader_specific_wiring():

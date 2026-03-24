@@ -8,7 +8,7 @@ from nx_yaml import nx_compose_all
 from mytilus.metaprog.hif import HIFToLoader
 from mytilus.state import SHELL_INTERPRETER
 from mytilus.state.loader import LoaderToShell
-from mytilus.state.mytilus import ShellSpecializer
+from mytilus.state.shell import ShellSpecializer
 
 
 FIXTURE_DIR = Path("tests/mytilus")
@@ -20,17 +20,7 @@ def case_paths():
     return tuple(sorted(path.with_suffix("") for path in FIXTURE_DIR.glob("*.yaml")))
 
 
-def normalize_svg(svg_text: str) -> str:
-    """Strip volatile Matplotlib metadata from golden SVGs."""
-    svg_text = re.sub(r"<metadata>.*?</metadata>\s*", "", svg_text, flags=re.DOTALL)
-    svg_text = re.sub(r'id="[^"]*[0-9a-f]{8,}[^"]*"', 'id="SVG_ID"', svg_text)
-    svg_text = re.sub(r'url\(#([^)]*[0-9a-f]{8,}[^)]*)\)', 'url(#SVG_ID)', svg_text)
-    svg_text = re.sub(r'xlink:href="#[^"]*[0-9a-f]{8,}[^"]*"', 'xlink:href="#SVG_ID"', svg_text)
-    svg_text = re.sub(r"/tmp/mytilus-[^<\" ]+\.tmp", "/tmp/MYTILUS_TMP", svg_text)
-    marker_use_re = re.compile(r'^\s*<use xlink:href="#SVG_ID" x="[^"]+" y="[^"]+" style="stroke: #000000"/>\s*$', re.MULTILINE)
-    marker_uses = iter(sorted(match.group(0).strip() for match in marker_use_re.finditer(svg_text)))
-    svg_text = marker_use_re.sub(lambda _match: next(marker_uses), svg_text)
-    return svg_text.strip()
+from mytilus.files import normalize_svg
 
 @pytest.mark.parametrize("path", case_paths(), ids=lambda path: path.name)
 def test_shell_runner_files(path, tmp_path):
@@ -54,8 +44,10 @@ def test_shell_runner_files(path, tmp_path):
 
     actual_mprog_svg_path = tmp_path / f"{path.name}.mprog.svg"
     actual_prog_svg_path = tmp_path / f"{path.name}.prog.svg"
-    mprog.draw(path=str(actual_mprog_svg_path))
-    prog.draw(path=str(actual_prog_svg_path))
+    
+    from mytilus.files import diagram_draw
+    diagram_draw(actual_mprog_svg_path, mprog)
+    diagram_draw(actual_prog_svg_path, prog)
 
     program = SHELL_INTERPRETER(prog)
 

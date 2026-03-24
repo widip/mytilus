@@ -15,16 +15,17 @@ def configure_matplotlib_cache():
     os.environ.setdefault("MPLCONFIGDIR", cache_dir)
 
 
-configure_matplotlib_cache()
+def enable_diagram_drawing():
+    """Configure Matplotlib only when diagram rendering is explicitly requested."""
+    configure_matplotlib_cache()
+    import matplotlib
 
-# Stop starting a Matplotlib GUI.
-import matplotlib
-matplotlib.use('agg')
+    matplotlib.use("agg")
 
 from .watch import shell_main, mytilus_main, mytilus_source_main
 
 
-def launch_shell(draw):
+def launch_shell(draw, watch):
     if not os.path.exists(DEFAULT_SHELL_SOURCE):
         # Ensure the directory exists if we want to support creating the file,
         # but for now let's just use a fallback or ensure it doesn't crash.
@@ -32,7 +33,7 @@ def launch_shell(draw):
         os.makedirs(os.path.dirname(DEFAULT_SHELL_SOURCE), exist_ok=True)
         with open(DEFAULT_SHELL_SOURCE, 'w') as f:
             f.write("# Mytilus default shell source\n")
-    shell_main(DEFAULT_SHELL_SOURCE, draw)
+    shell_main(DEFAULT_SHELL_SOURCE, draw, watch)
 
 
 def run_requested_mode(args, draw):
@@ -41,7 +42,7 @@ def run_requested_mode(args, draw):
         mytilus_source_main(args.command_text, draw)
     elif args.file_name is None:
         logging.debug("Starting shell")
-        launch_shell(draw)
+        launch_shell(draw, args.watch)
     else:
         mytilus_main(args.file_name, draw)
 
@@ -54,9 +55,20 @@ def build_arguments(args):
     parser = argparse.ArgumentParser(prog="mytilus")
 
     parser.add_argument(
-        "-n", "--no-draw",
+        "--draw",
         action="store_true",
-        help="Skips jpg drawing, just run the program"
+        help="Draw JPG diagrams before running"
+    )
+    parser.add_argument(
+        "-n", "--no-draw",
+        dest="draw",
+        action="store_false",
+        help=argparse.SUPPRESS
+    )
+    parser.add_argument(
+        "-w", "--watch",
+        action="store_true",
+        help="Watch YAML files for changes in the interactive shell"
     )
     parser.add_argument(
         "-v", "--verbose",
@@ -83,6 +95,7 @@ def build_arguments(args):
         nargs="?",
         help="The yaml file to run, if not provided it will start a shell"
     )
+    parser.set_defaults(draw=False)
     args = parser.parse_args(args)
     if args.command_text is not None and args.file_name is not None:
         parser.error("cannot use -c/--command with a file name")
@@ -91,17 +104,20 @@ def build_arguments(args):
 
 def main(argv):
     args = build_arguments(argv[1:])
-    draw = not args.no_draw
+    draw = args.draw
 
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(levelname)s: %(message)s",
     )
 
-    logging.debug(f"running \"{args.file_name}\" file with no-draw={args.no_draw}")
+    if draw:
+        enable_diagram_drawing()
+
+    logging.debug(f'running "{args.file_name}" file with draw={draw} watch={args.watch}')
     if interactive_followup_requested(args):
         run_requested_mode(args, draw)
-        launch_shell(draw)
+        launch_shell(draw, args.watch)
         return
 
     run_requested_mode(args, draw)

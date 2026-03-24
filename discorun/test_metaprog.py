@@ -23,9 +23,12 @@ def after_each_test(request):
         
     comp, prog, mprog = data
     
-    comp.draw(path=svg_path(f"{test_name}_comp.svg"))
-    prog.draw(path=svg_path(f"{test_name}_prog.svg"))
-    mprog.draw(path=svg_path(f"{test_name}_mprog.svg"))
+    from pathlib import Path
+    from mytilus.files import diagram_draw
+    
+    diagram_draw(Path(svg_path(f"{test_name}_comp.svg")), comp)
+    diagram_draw(Path(svg_path(f"{test_name}_prog.svg")), prog)
+    diagram_draw(Path(svg_path(f"{test_name}_mprog.svg")), mprog)
 
 
 A, B, X = Ty("A"), Ty("B"), Ty("X")

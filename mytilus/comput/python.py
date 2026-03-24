@@ -39,6 +39,19 @@ def run(function, argument):
     return untuplify(uev(function, argument))
 
 
+def runtime_values(value):
+    """Normalize one runtime value under the Python-computation tuple convention."""
+    return tuplify(untuplify(tuplify(value)))
+
+
+def pipe(stages, *, input):
+    """Run one pipeline in ``subprocess.PIPE`` style from ``input`` to final stdout."""
+    stdout = input
+    for stage in stages:
+        stdout = run(stage, stdout)
+    return stdout
+
+
 def pev(program, static_input):
     """DisCoPy-level partial evaluator ``[] : P x X -> P``."""
     program = untuplify(tuplify(program))

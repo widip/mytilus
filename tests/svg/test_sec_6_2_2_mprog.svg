@@ -2,20 +2,6 @@
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg xmlns:xlink="http://www.w3.org/1999/xlink" width="144pt" height="144pt" viewBox="0 0 144 144" xmlns="http://www.w3.org/2000/svg" version="1.1">
- <metadata>
-  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-   <cc:Work>
-    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-03-21T17:13:48.141924</dc:date>
-    <dc:format>image/svg+xml</dc:format>
-    <dc:creator>
-     <cc:Agent>
-      <dc:title>Matplotlib v3.10.8, https://matplotlib.org/</dc:title>
-     </cc:Agent>
-    </dc:creator>
-   </cc:Work>
-  </rdf:RDF>
- </metadata>
  <defs>
   <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
  </defs>
@@ -35,27 +21,27 @@ L 144 144
 L 144 0 
 L 0 0 
 z
-" clip-path="url(#pdc3ee70e01)" style="fill: #ffffff; stroke: #ffffff; stroke-linejoin: miter"/>
+" clip-path="url(#SVG_ID)" style="fill: #ffffff; stroke: #ffffff; stroke-linejoin: miter"/>
    </g>
    <g id="patch_3">
     <path d="M 36 0 
 Q 36 18 36 18 
-" clip-path="url(#pdc3ee70e01)" style="fill: none; stroke: #000000; stroke-linejoin: miter"/>
+" clip-path="url(#SVG_ID)" style="fill: none; stroke: #000000; stroke-linejoin: miter"/>
    </g>
    <g id="patch_4">
     <path d="M 36 54 
 Q 36 90 36 90 
-" clip-path="url(#pdc3ee70e01)" style="fill: none; stroke: #000000; stroke-linejoin: miter"/>
+" clip-path="url(#SVG_ID)" style="fill: none; stroke: #000000; stroke-linejoin: miter"/>
    </g>
    <g id="patch_5">
     <path d="M 108 0 
 Q 108 90 108 90 
-" clip-path="url(#pdc3ee70e01)" style="fill: none; stroke: #000000; stroke-linejoin: miter"/>
+" clip-path="url(#SVG_ID)" style="fill: none; stroke: #000000; stroke-linejoin: miter"/>
    </g>
    <g id="patch_6">
     <path d="M 72 126 
 Q 72 144 72 144 
-" clip-path="url(#pdc3ee70e01)" style="fill: none; stroke: #000000; stroke-linejoin: miter"/>
+" clip-path="url(#SVG_ID)" style="fill: none; stroke: #000000; stroke-linejoin: miter"/>
    </g>
    <g id="patch_7">
     <path d="M 18 54 
@@ -63,7 +49,7 @@ L 18 18
 L 54 18 
 L 54 54 
 z
-" clip-path="url(#pdc3ee70e01)" style="fill: #ffffff; stroke: #000000; stroke-linejoin: miter"/>
+" clip-path="url(#SVG_ID)" style="fill: #ffffff; stroke: #000000; stroke-linejoin: miter"/>
    </g>
    <g id="patch_8">
     <path d="M 18 126 
@@ -71,11 +57,11 @@ L 18 90
 L 126 90 
 L 126 126 
 z
-" clip-path="url(#pdc3ee70e01)" style="fill: #ffffff; stroke: #000000; stroke-linejoin: miter"/>
+" clip-path="url(#SVG_ID)" style="fill: #ffffff; stroke: #000000; stroke-linejoin: miter"/>
    </g>
    <g id="text_1">
     <!-- X -->
-    <g transform="translate(40.5 12.098437) scale(0.1 -0.1)">
+    <g transform="translate(57.6 13.27875) scale(0.08 -0.08)">
      <defs>
       <path id="DejaVuSans-58" d="M 403 4666 
 L 1081 4666 
@@ -98,7 +84,7 @@ z
    </g>
    <g id="text_2">
     <!-- L -->
-    <g transform="translate(40.5 66.098438) scale(0.1 -0.1)">
+    <g transform="translate(57.6 67.27875) scale(0.08 -0.08)">
      <defs>
       <path id="DejaVuSans-4c" d="M 628 4666 
 L 1259 4666 
@@ -115,7 +101,7 @@ z
    </g>
    <g id="text_3">
     <!-- A -->
-    <g transform="translate(112.5 12.098437) scale(0.1 -0.1)">
+    <g transform="translate(129.6 13.27875) scale(0.08 -0.08)">
      <defs>
       <path id="DejaVuSans-41" d="M 2188 4044 
 L 1331 1722 
@@ -139,7 +125,7 @@ z
    </g>
    <g id="text_4">
     <!-- B -->
-    <g transform="translate(76.5 138.098437) scale(0.1 -0.1)">
+    <g transform="translate(93.6 139.27875) scale(0.08 -0.08)">
      <defs>
       <path id="DejaVuSans-42" d="M 1259 2228 
 L 1259 519 
@@ -179,7 +165,7 @@ z
    </g>
    <g id="text_5">
     <!-- H -->
-    <g transform="translate(32.239844 38.759375) scale(0.1 -0.1)">
+    <g transform="translate(31.487813 39.31125) scale(0.12 -0.12)">
      <defs>
       <path id="DejaVuSans-48" d="M 628 4666 
 L 1259 4666 
@@ -202,7 +188,7 @@ z
    </g>
    <g id="text_6">
     <!-- {} -->
-    <g transform="translate(65.6375 110.759375) scale(0.1 -0.1)">
+    <g transform="translate(64.365 111.31125) scale(0.12 -0.12)">
      <defs>
       <path id="DejaVuSans-7b" d="M 3272 -594 
 L 3272 -1044 
@@ -276,7 +262,7 @@ z
   </g>
  </g>
  <defs>
-  <clipPath id="pdc3ee70e01">
+  <clipPath id="SVG_ID">
    <rect x="0" y="0" width="144" height="144"/>
   </clipPath>
  </defs>

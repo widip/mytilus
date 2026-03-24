@@ -1,12 +1,12 @@
 from discorun.comput.computer import Ty
 from mytilus.comput import python as comput_python
-from mytilus.comput.mytilus import Command, Empty, Literal, ShellProgram, io_ty, shell_program_ty
+from mytilus.comput.shell import Command, Empty, Literal, ShellProgram, io_ty, shell_program_ty
 import mytilus.metaprog as mytilus_metaprog
 from mytilus.metaprog import python as metaprog_python
 from mytilus.pcc import SHELL
 from discorun.state import core as state_core
 from mytilus.state import SHELL_INTERPRETER, SHELL_PROGRAM_TO_PYTHON
-from mytilus.state.mytilus import (
+from mytilus.state.shell import (
     Parallel,
     Pipeline,
     ShellExecution,
@@ -14,7 +14,7 @@ from mytilus.state.mytilus import (
     parallel,
     shell_program_runner,
 )
-from mytilus.wire.mytilus import Copy
+from mytilus.wire.shell import Copy
 
 
 def box_names(diagram):

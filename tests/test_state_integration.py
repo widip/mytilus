@@ -1,7 +1,7 @@
-from mytilus.comput.mytilus import io_ty
+from mytilus.comput.shell import io_ty
 from mytilus.pcc import LOADER, SHELL
 from mytilus.state.loader import LoaderExecution
-from mytilus.state.mytilus import ShellExecution
+from mytilus.state.shell import ShellExecution
 from mytilus.wire.loader import loader_stream_ty
 
 

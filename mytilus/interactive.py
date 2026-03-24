@@ -4,6 +4,7 @@ import termios
 import tty
 
 
+CTRL_C = "\x03"
 CTRL_D = "\x04"
 CTRL_J = "\x0A"
 CTRL_M = "\x0D"
@@ -15,6 +16,8 @@ READLINE_SYMBOL = "single"
 
 def apply_tty_input(buffer: list[str], char: str):
     """Update the pending YAML document buffer for one TTY character."""
+    if char == CTRL_C:
+        return ("interrupt", None)
     if char == CTRL_D:
         return ("eof" if not buffer else "submit", None)
     if char == CTRL_M:
@@ -45,6 +48,8 @@ def read_tty_yaml_document():
             char = raw.decode("latin1")
             action, removed = apply_tty_input(buffer, char)
 
+            if action == "interrupt":
+                raise KeyboardInterrupt
             if action == "eof":
                 raise EOFError
             if action == "submit":

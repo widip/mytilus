@@ -2,20 +2,6 @@
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg xmlns:xlink="http://www.w3.org/1999/xlink" width="72pt" height="72pt" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg" version="1.1">
- <metadata>
-  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-   <cc:Work>
-    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-03-17T13:58:47.158047</dc:date>
-    <dc:format>image/svg+xml</dc:format>
-    <dc:creator>
-     <cc:Agent>
-      <dc:title>Matplotlib v3.10.8, https://matplotlib.org/</dc:title>
-     </cc:Agent>
-    </dc:creator>
-   </cc:Work>
-  </rdf:RDF>
- </metadata>
  <defs>
   <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
  </defs>
@@ -35,17 +21,17 @@ L 72 72
 L 72 0 
 L 0 0 
 z
-" clip-path="url(#pa736bb96fd)" style="fill: #ffffff; stroke: #ffffff; stroke-linejoin: miter"/>
+" clip-path="url(#SVG_ID)" style="fill: #ffffff; stroke: #ffffff; stroke-linejoin: miter"/>
    </g>
    <g id="patch_3">
     <path d="M 36 0 
 Q 36 18 36 18 
-" clip-path="url(#pa736bb96fd)" style="fill: none; stroke: #000000; stroke-linejoin: miter"/>
+" clip-path="url(#SVG_ID)" style="fill: none; stroke: #000000; stroke-linejoin: miter"/>
    </g>
    <g id="patch_4">
     <path d="M 36 54 
 Q 36 72 36 72 
-" clip-path="url(#pa736bb96fd)" style="fill: none; stroke: #000000; stroke-linejoin: miter"/>
+" clip-path="url(#SVG_ID)" style="fill: none; stroke: #000000; stroke-linejoin: miter"/>
    </g>
    <g id="patch_5">
     <path d="M 18 54 
@@ -53,11 +39,11 @@ L 18 18
 L 54 18 
 L 54 54 
 z
-" clip-path="url(#pa736bb96fd)" style="fill: #ffffff; stroke: #000000; stroke-linejoin: miter"/>
+" clip-path="url(#SVG_ID)" style="fill: #ffffff; stroke: #000000; stroke-linejoin: miter"/>
    </g>
    <g id="text_1">
     <!-- yaml_stream -->
-    <g transform="translate(40.5 12.098438) scale(0.1 -0.1)">
+    <g transform="translate(57.6 13.27875) scale(0.08 -0.08)">
      <defs>
       <path id="DejaVuSans-79" d="M 2059 -325 
 Q 1816 -950 1584 -1140 
@@ -263,7 +249,7 @@ z
    </g>
    <g id="text_2">
     <!-- yaml_stream -->
-    <g transform="translate(40.5 66.098438) scale(0.1 -0.1)">
+    <g transform="translate(57.6 67.27875) scale(0.08 -0.08)">
      <use xlink:href="#DejaVuSans-79"/>
      <use xlink:href="#DejaVuSans-61" transform="translate(59.179688 0)"/>
      <use xlink:href="#DejaVuSans-6d" transform="translate(120.458984 0)"/>
@@ -279,7 +265,7 @@ z
    </g>
    <g id="text_3">
     <!-- !echo -->
-    <g transform="translate(21.941406 38.759375) scale(0.1 -0.1)">
+    <g transform="translate(19.129687 39.31125) scale(0.12 -0.12)">
      <defs>
       <path id="DejaVuSans-21" d="M 966 794 
 L 1600 794 
@@ -368,7 +354,7 @@ z
   </g>
  </g>
  <defs>
-  <clipPath id="pa736bb96fd">
+  <clipPath id="SVG_ID">
    <rect x="0" y="0" width="72" height="72"/>
   </clipPath>
  </defs>
