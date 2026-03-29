@@ -33,26 +33,46 @@ def has_interactive_terminal():
 
 
 def execute_shell_diagram(diagram, stdin_text: str | None):
-    """Run one compiled shell diagram from buffered stdin or direct terminal ownership."""
-    if has_interactive_terminal():
+    # Terminal passthrough: check if this is a single command.
+    if has_interactive_terminal() and stdin_text is None:
         command = terminal_passthrough_command(diagram)
         if command is not None:
             run_terminal_command(command)
             return None
-    if stdin_text is None:
-        stdin_text = ""
-    return mytilus_state.SHELL_INTERPRETER(diagram)(stdin_text)
+
+    # Normal execution: captured output for tests or script usage.
+    runner = mytilus_state.SHELL_INTERPRETER(diagram)
+    # Call with 1-wire input to get 1-wire output (polymorphic runner).
+    res = runner(stdin_text if stdin_text is not None else "")
+    if isinstance(res, tuple) and len(res) == 2:
+        # Stateful (P x io) -> just return io
+        return res[1]
+    return res
 
 
-def emit_mytilus_result(run_res):
-    """Emit one mytilus file or inline-command result."""
+def emit_mytilus_result(run_res) -> int:
+    """Emit one mytilus file or inline-command result, returning the last exit code."""
+    # Ensure run_res is a list of results if it's a list.
+    results = run_res if isinstance(run_res, list) else [run_res]
+    exit_code = 0
     with open("mytilus.log", "a") as log:
-        for value in mytilus_state.runtime_values(run_res):
-            if not value:
-                continue
-            sys.stdout.write(value)
-            log.write(value)
+        for res in results:
+            for value in mytilus_state.runtime_values(res):
+                if not isinstance(value, tuple) or len(value) != 3:
+                    # Non-triple values (e.g. from pure Python boxes) emit as-is.
+                    text = str(value)
+                    sys.stdout.write(text)
+                    log.write(text)
+                    continue
+
+                stdout, rc, stderr = value
+                sys.stdout.write(stdout)
+                log.write(stdout)
+                if stderr:
+                    sys.stderr.write(stderr)
+                exit_code = rc
     sys.stdout.flush()
+    return exit_code
 
 
 def watch_main():
@@ -125,9 +145,13 @@ def run_shell_source(source, file_name, draw):
 
     if draw:
         diagram_draw(path, source_d)
-    result_ev = execute_shell_diagram(source_d, None)
-    if result_ev is not None:
-        emit_mytilus_result(result_ev)
+    res = execute_shell_diagram(source_d, None)
+    emit_mytilus_result(res)
+    # Status-triple error propagation: raise error for the interactive runner to capture.
+    if isinstance(res, tuple) and len(res) == 3 and res[1] != 0:
+        import subprocess
+        raise subprocess.CalledProcessError(res[1], f"shell command failure: {source}")
+    return res
 
 
 def shell_main(file_name, draw, watch=False):
@@ -159,9 +183,7 @@ def mytilus_main(file_name, draw):
         diagram_draw(path, fd)
 
     run_res = execute_shell_diagram(fd, None) if has_interactive_terminal() else execute_shell_diagram(fd, sys.stdin.read())
-
-    if run_res is not None:
-        emit_mytilus_result(run_res)
+    return emit_mytilus_result(run_res)
 
 
 def mytilus_source_main(source, draw):
@@ -171,6 +193,4 @@ def mytilus_source_main(source, draw):
         diagram_draw(path, fd)
 
     run_res = execute_shell_diagram(fd, None) if has_interactive_terminal() else execute_shell_diagram(fd, sys.stdin.read())
-
-    if run_res is not None:
-        emit_mytilus_result(run_res)
+    return emit_mytilus_result(run_res)

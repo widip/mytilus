@@ -126,6 +126,29 @@ class ShellConsole(ReadFuncConsole):
             filename,
         )
 
+    def interact(self, banner=None, exitmsg=None):
+        """Override interact to never swallow exceptions from push/runsource."""
+        if banner:
+            self.write(f"{banner}\n")
+        while True:
+            try:
+                prompt = getattr(self, "prompt", "⌁ ")
+                line = self.raw_input(prompt)
+            except EOFError:
+                if exitmsg:
+                    self.write(f"{exitmsg}\n")
+                break
+            except KeyboardInterrupt:
+                self.write("\nKeyboardInterrupt\n")
+                continue
+            self.push(line)
+
+    def push(self, line):
+        """Override push to bypass code.InteractiveConsole's exception swallowing."""
+        if not line: return False
+        # We call runsource directly to bypass the standard push() catch-all.
+        return self.runsource(line, self.filename)
+
     def runsource(self, source, filename, *rest):
         del filename, rest
         if not source:

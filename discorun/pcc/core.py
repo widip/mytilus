@@ -67,11 +67,28 @@ class ProgramClosedCategory(MonoidalComputer):
         """
         Chapter 8: transport programs/evaluators to another program-closed category.
         """
+        from ..state.core import Execution, InputOutputMap, StateUpdateMap
         if self.is_evaluator(item):
             return codomain.evaluator(
                 self._simulate_type(item.A, codomain),
                 self._simulate_type(item.B, codomain),
             )
+        if isinstance(item, Execution):
+            return codomain.execution(
+                self._simulate_type(item.A, codomain),
+                self._simulate_type(item.B, codomain),
+            )
+        if isinstance(item, StateUpdateMap):
+            return codomain.execution(
+                self._simulate_type(item.A, codomain),
+                self._simulate_type(item.B, codomain),
+            ).state_update_diagram()
+        if isinstance(item, InputOutputMap):
+             return codomain.execution(
+                self._simulate_type(item.A, codomain),
+                self._simulate_type(item.B, codomain),
+            ).output_diagram()
+
         return self._simulate_type(item, codomain)
 
     def execution(self, A: computer.Ty, B: computer.Ty):

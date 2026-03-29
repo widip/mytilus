@@ -9,7 +9,6 @@ SHELL_RUNTIME = state_shell.ShellRuntime()
 SHELL_PROGRAM_TO_PYTHON = state_shell.ShellToPythonProgram()
 SHELL_PYTHON_RUNTIME = state_shell.ShellPythonRuntime()
 SHELL_INTERPRETER = state_shell.ShellInterpreter(
-    SHELL_SPECIALIZER,
     SHELL_PROGRAM_TO_PYTHON,
     SHELL_PYTHON_RUNTIME,
 )

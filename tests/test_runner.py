@@ -51,6 +51,6 @@ def test_shell_runner_files(path, tmp_path):
 
     program = SHELL_INTERPRETER(prog)
 
-    assert program(stdin_path.read_text()) == stdout_path.read_text()
+    assert program(stdin_path.read_text()) == (stdout_path.read_text(), 0, "")
     assert normalize_svg(actual_prog_svg_path.read_text()) == normalize_svg(prog_svg_path.read_text())
     assert normalize_svg(actual_mprog_svg_path.read_text()) == normalize_svg(mprog_svg_path.read_text())

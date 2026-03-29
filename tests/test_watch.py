@@ -111,7 +111,7 @@ def test_execute_shell_diagram_keeps_structured_programs_captured(monkeypatch):
 
     monkeypatch.setattr(watch, "has_interactive_terminal", lambda: True)
 
-    assert watch.execute_shell_diagram(diagram, None) == "2\n"
+    assert watch.execute_shell_diagram(diagram, None) == ("2\n", 0, "")
 
 
 def test_terminal_passthrough_command_rejects_nested_command_substitution():
@@ -126,7 +126,7 @@ def test_execute_shell_diagram_keeps_nested_command_substitution_captured(monkey
     monkeypatch.setattr(watch, "has_interactive_terminal", lambda: True)
     monkeypatch.setattr(watch, "run_terminal_command", lambda command: pytest.fail(f"unexpected passthrough for {command.argv!r}"))
 
-    assert watch.execute_shell_diagram(diagram, None) == "ok\n"
+    assert watch.execute_shell_diagram(diagram, None) == ("ok\n", 0, "")
 
 
 def test_shell_main_propagates_invalid_command_errors(monkeypatch, capsys):

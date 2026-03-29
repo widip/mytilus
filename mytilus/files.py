@@ -3,6 +3,7 @@ import pathlib
 import re
 
 from nx_yaml import nx_compose_all
+import yaml
 
 from discorun.comput.computer import Box, Diagram
 from .metaprog.hif import HIFToLoader
@@ -37,7 +38,41 @@ def stream_diagram(stream) -> Diagram:
     return LoaderToShell()(HIFToLoader()(nx_compose_all(stream)))
 
 
+def _inline_shell_diagram(source: str) -> Diagram | None:
+    """Compile direct ``sh: [...]`` inline commands without routing through HIF."""
+    try:
+        parsed = yaml.safe_load(source)
+    except yaml.YAMLError:
+        return None
+
+    if not isinstance(parsed, dict) or tuple(parsed.keys()) != ("sh",):
+        return None
+
+    spec = parsed["sh"]
+    if not isinstance(spec, list) or not spec:
+        return None
+
+    def is_argv(argv):
+        return isinstance(argv, list) and argv and all(isinstance(arg, str) for arg in argv)
+
+    from .comput.shell import Command
+    from .state.shell import Pipeline
+    from .pcc import SHELL
+    from .wire.shell import io_ty
+
+    execution = SHELL.execution(io_ty, io_ty).output_diagram()
+
+    if is_argv(spec):
+        return Command(spec) @ io_ty >> execution
+    if all(is_argv(stage) for stage in spec):
+        return Pipeline(tuple(Command(stage) @ io_ty >> execution for stage in spec))
+    return None
+
+
 def source_diagram(source: str) -> Diagram:
+    inline = _inline_shell_diagram(source)
+    if inline is not None:
+        return inline
     return stream_diagram(io.StringIO(source))
 
 

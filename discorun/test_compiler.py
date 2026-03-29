@@ -1,11 +1,12 @@
 import pytest
-
 from discorun.comput.computer import *
-from discorun.comput.boxes import Data, Parallel, Partial, Sequential
+from discorun.comput.boxes import Data, Idempotent, Parallel, Partial, Quote, Sequential
 from discorun.comput.compile import Compile
 from os import path
 
+
 SVG_ROOT_PATH = path.join("tests", "svg")
+
 
 def svg_path(basename):
     return path.join(SVG_ROOT_PATH, basename)
@@ -19,14 +20,15 @@ def after_each_test(request):
     data = getattr(request.node, "draw_objects", None)
     if not data:
         raise AttributeError(f"test {test_name} did not set draw_objects (left, right) attribute for drawing")
-        
+
     left, right = data
-    
+
     from pathlib import Path
     from mytilus.files import diagram_draw
-    
+
     diagram_draw(Path(svg_path(f"{test_name}_left.svg")), left)
     diagram_draw(Path(svg_path(f"{test_name}_right.svg")), right)
+
 
 def test_fig_2_7_compile_sequential_to_left_side(request):
     """
@@ -41,9 +43,8 @@ def test_fig_2_7_compile_sequential_to_left_side(request):
 
     compiler = Compile()
     compiled = compiler(right)
-    assert compiled == left
     request.node.draw_objects = (left, right)
-
+    assert compiled == left
 
 
 def test_fig_2_7_compile_parallel_to_left_side(request):
@@ -64,19 +65,31 @@ def test_fig_2_7_compile_parallel_to_left_side(request):
     )
 
     compiled = compiler(right)
-
-    assert compiled == left
     request.node.draw_objects = (left, right)
+    assert compiled == left
 
-def test_eq_2_6_compile_data_is_identity(request):
-    """Eq. 2.6: uncurrying quoted data compiles to its uncurried form (box @ Id) >> Eval."""
-    right = Data("A", ProgramTy("P"))
-    left = Id("A")
+
+def test_eq_2_6_compile_quote_is_identity(request):
+    """Eq. 2.6/2.18: uncurrying quoted data compiles to identity wire."""
+    A = Ty("A")
+    right = Quote(A, ProgramTy("P"))
+    left = Id(A)
     compiler = Compile()
     compiled = compiler(right)
-
-    assert compiled == left
     request.node.draw_objects = (left, right)
+    assert compiled == left
+
+
+def test_eq_2_8_compile_idempotent_is_retraction(request):
+    """Eq. 2.8/2.19: idempotent filter ρ_A = ⌜{ }_A⌝ compiles to eval >> enc."""
+    A = Ty("A")
+    P = ProgramTy("P")
+    right = Idempotent(A, P)
+    left = Computer(P, Ty(), A) >> Data(P, A)
+    compiler = Compile()
+    compiled = compiler(right)
+    request.node.draw_objects = (left, right)
+    assert compiled == left
 
 
 def test_eq_2_5_compile_partial_is_eval(request):
@@ -88,5 +101,5 @@ def test_eq_2_5_compile_partial_is_eval(request):
     right = Partial(gamma, X, A, B, P)
     compiler = Compile()
     compiled = compiler(right)
-    assert compiled == left
     request.node.draw_objects = (left, right)
+    assert compiled == left

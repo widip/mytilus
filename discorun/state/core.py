@@ -1,9 +1,10 @@
 """Generic Chapter 7 stateful process structure."""
 
-from discopy import monoidal
+from discopy import monoidal, python
 
 from ..comput import computer
 from ..metaprog import core as metaprog_core
+from ..metaprog.compile import RunSpecializer, RunInterpreter
 from ..pcc.core import ProgramClosedCategory
 
 
@@ -82,6 +83,10 @@ class Execution(Process):
     def specialize(self):
         return self.universal_ev()
 
+    def __call__(self, Q: computer.Diagram):
+        """Sec. 7.3: apply a program to this execution model."""
+        return execute(Q, self.A, self.B)
+
 
 class ProcessRunner(monoidal.Functor):
     """Base interpreter of Eq. 7.1 process projections and wiring."""
@@ -94,6 +99,19 @@ class ProcessRunner(monoidal.Functor):
             dom=computer.Category(),
             cod=cod,
         )
+
+    def __call__(self, other):
+        """Functorial dispatching for Eq. 7.1 process projections."""
+        if isinstance(other, StateUpdateMap):
+            return self.state_update_ar(self(other.dom), self(other.cod))
+        if isinstance(other, InputOutputMap):
+            return self.output_ar(self(other.dom), self(other.cod))
+        
+        # Streamlined dispatch: handle generic bubbles here.
+        if isinstance(other, monoidal.Bubble):
+             return self(other.arg)
+
+        return super().__call__(other)
 
     def object(self, ob):
         del self
@@ -139,19 +157,66 @@ class ProcessRunner(monoidal.Functor):
         return self.process_ar_map(box, dom, cod)
 
 
-class ProcessSimulation(metaprog_core.Specializer):
+class ProcessSimulation(RunSpecializer):
     """Fig. 7.2 simulation as a state-aware diagrammatic transformation."""
 
-    def __init__(self):
+    def __call__(self, other):
+        # 1. Specialized diagram components (State projections, services)
+        if isinstance(other, (StateUpdateMap, InputOutputMap)):
+            return self._identity_arrow(other)
+        from ..wire import services
+        if isinstance(other, (services.Copy, services.Swap, services.Delete)):
+             return self._identity_arrow(other)
+        # 2. Base class handles diagrams (recursion to ar_map) and bubbles.
+        return super().__call__(other)
+
+    def __init__(self, source: ProgramClosedCategory = None, target: ProgramClosedCategory = None):
+        self.source, self.target = source, target
         metaprog_core.Specializer.__init__(
             self,
             dom=computer.Category(),
             cod=computer.Category(),
         )
 
+    def __call__(self, other):
+        # Unified dispatch for diagrammatic components.
+        if isinstance(other, (StateUpdateMap, InputOutputMap)):
+            return self._identity_arrow(other)
+        
+        # 2. Lowering: generic bubbles should be un-bubbled (interrogated) here.
+        if isinstance(other, monoidal.Bubble):
+             return self(other.arg)
+
+        return super().__call__(other)
+
+    def ar_map(self, box):
+        """Pure atomic mapping: mapping one arrow, ensuring domain/codomain transport."""
+        res = self._identity_arrow(box)
+        if hasattr(res, "inside") and not isinstance(res, computer.Diagram):
+             dom, cod = self(box.dom), self(box.cod)
+             res = computer.Diagram(res.inside, dom, cod)
+        return res
+
     def simulation(self, item):
         """Simulation action on objects and non-projection arrows."""
-        del self
+        if isinstance(item, computer.Ty):
+            if not item: return item
+            if self.source and self.target:
+                head, tail = item[:1], item[1:]
+                if head[0] == self.source.program_ty[0]:
+                    return self.target.program_ty @ self.simulation(tail)
+                if head[0].name in ("stdout", "rc", "stderr"):
+                    return head @ self.simulation(tail)
+                return self.source.simulate(item, self.target)
+            return item
+
+        from ..wire import services
+        if isinstance(item, services.Copy):
+            return services.Copy(self.simulation(item.dom))
+        if isinstance(item, services.Swap):
+            return services.Swap(self.simulation(item.left), self.simulation(item.right))
+        if isinstance(item, services.Delete):
+            return services.Delete(self.simulation(item.dom))
         return item
 
     def sta(self, state_update: StateUpdateMap):
@@ -176,10 +241,16 @@ class ProcessSimulation(metaprog_core.Specializer):
 
     def _identity_arrow(self, ar):
         if isinstance(ar, StateUpdateMap):
-            return self.sta(ar)
-        if isinstance(ar, InputOutputMap):
-            return self.out(ar)
-        return self.simulation(ar)
+            res = self.sta(ar)
+        elif isinstance(ar, InputOutputMap):
+            res = self.out(ar)
+        else:
+            res = self.simulation(ar)
+            
+        # Ensure we return a Diagram for compatibility if it's not already structured.
+        if not isinstance(res, computer.Diagram):
+            res = computer.Diagram(res.dom, res.cod, res.inside)
+        return res
 
 
 def simulate(q: computer.Diagram, s: computer.Diagram):

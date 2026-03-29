@@ -1,5 +1,6 @@
 """Language-agnostic metaprogram abstractions and Futamura equations."""
 
+from discopy import monoidal
 from ..comput.computer import Box, Computer, ComputableFunction, Diagram, Functor, Program, ProgramTy, Ty
 
 
@@ -51,9 +52,19 @@ class Specializer(Functor):
         return ar
 
     def __call__(self, other):
+        # Atomic boxes and specialized arrows (SpecializerBox)
         if isinstance(other, SpecializerBox):
             return self.specialize(other)
+        
+        # Streamline dispatch: generic bubbles.
+        if isinstance(other, monoidal.Bubble):
+             return self(other.arg)
+
         return super().__call__(other)
+
+    def ar_map(self, box):
+        # We assume specialized boxes were handled in __call__.
+        return self._identity_arrow(box)
 
     def specialize(self, other):
         return other
@@ -84,9 +95,19 @@ class Interpreter(Functor):
         return ar
 
     def __call__(self, other):
+        # Interpreter-specific boxes.
         if isinstance(other, InterpreterBox):
             return self.interpret(other)
+
+        # Streamline dispatch: generic bubbles.
+        if isinstance(other, monoidal.Bubble):
+             return self(other.arg)
+
         return super().__call__(other)
+
+    def ar_map(self, box):
+        # We assume specialized boxes were handled in __call__.
+        return self._identity_arrow(box)
 
     def interpret(self, other):
         return other

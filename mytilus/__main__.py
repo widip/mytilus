@@ -39,12 +39,13 @@ def launch_shell(draw, watch):
 def run_requested_mode(args, draw):
     if args.command_text is not None:
         logging.debug("running inline command text")
-        mytilus_source_main(args.command_text, draw)
+        return mytilus_source_main(args.command_text, draw)
     elif args.file_name is None:
         logging.debug("Starting shell")
         launch_shell(draw, args.watch)
+        return 0
     else:
-        mytilus_main(args.file_name, draw)
+        return mytilus_main(args.file_name, draw)
 
 
 def interactive_followup_requested(args):
@@ -91,6 +92,11 @@ def build_arguments(args):
         help="Ignored; for compatibility with login shells"
     )
     parser.add_argument(
+        "-x", "--trace",
+        action="store_true",
+        help="Print commands and their arguments as they are executed"
+    )
+    parser.add_argument(
         "file_name",
         nargs="?",
         help="The yaml file to run, if not provided it will start a shell"
@@ -111,8 +117,8 @@ def main(argv):
         format="%(levelname)s: %(message)s",
     )
 
-    if draw:
-        enable_diagram_drawing()
+    if args.trace:
+        os.environ["MYTILUS_TRACE"] = "1"
 
     logging.debug(f'running "{args.file_name}" file with draw={draw} watch={args.watch}')
     if interactive_followup_requested(args):
@@ -120,7 +126,7 @@ def main(argv):
         launch_shell(draw, args.watch)
         return
 
-    run_requested_mode(args, draw)
+    sys.exit(run_requested_mode(args, draw))
 
 if __name__ == "__main__":
     main(sys.argv)

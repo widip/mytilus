@@ -36,7 +36,11 @@ def _specialize_shell(diagram):
     if isinstance(diagram, Pipeline):
         return diagram.specialize()
     if isinstance(diagram, Parallel):
-        return diagram.specialize()
+        # Prevent infinite recursion: if branches are already specialized, return.
+        new_branches = tuple(_specialize_shell(branch) for branch in diagram.branches)
+        if new_branches == diagram.branches:
+            return diagram
+        return Parallel(new_branches)
     if isinstance(diagram, monoidal.Bubble):
         return _specialize_shell(diagram.arg)
     if isinstance(diagram, computer.Box):
@@ -92,18 +96,28 @@ class Parallel(monoidal.Bubble, computer.Box):
 
     def __init__(self, branches):
         self.branches = tuple(branches)
+        # Ensure the bubble is valid before simulation by including structural logic inside.
+        n = len(self.branches)
+        inside = shell_wire.shell_id()
+        if n > 1:
+            inside = shell_wire.Copy(n) >> _tensor_all(self.branches) >> shell_wire.Merge(n)
+        elif n == 1:
+            inside = self.branches[0]
+        
         monoidal.Bubble.__init__(
             self,
-            _tensor_all(self.branches) if self.branches else shell_wire.shell_id(),
+            inside,
             dom=shell_lang.io_ty,
             cod=shell_lang.io_ty,
             drawing_name="map",
         )
 
     def specialize(self):
-        return Parallel(
-            tuple(_specialize_shell(branch) for branch in self.branches),
-        )
+        """Specialize branches while preserving the parallel bubble structure."""
+        new_branches = tuple(_specialize_shell(branch) for branch in self.branches)
+        if len(new_branches) == 1:
+            return new_branches[0]
+        return Parallel(new_branches)
 
 
 def pipeline(stages):

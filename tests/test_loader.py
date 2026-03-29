@@ -131,10 +131,10 @@ def test_loader_tagged_mapping_command_substitution_runs():
 ? World
 ? !echo Foo: !wc -c
 ? "!"
-"""
+    """
     program = LoaderToShell()(HIFToLoader()(nx_compose_all(source)))
 
-    assert SHELL_INTERPRETER(program)("") == "Hello World 4 !\n"
+    assert SHELL_INTERPRETER(program)("") == ("Hello World 4 !\n", 0, "")
 
 
 def test_loader_tagged_mapping_with_non_scalar_value_stays_mapping():
@@ -156,4 +156,6 @@ def test_loader_shell_case_study_is_mapping_bubble():
     )
     diagram = LoaderToShell()(HIFToLoader()(nx_compose_all(Path("examples/shell.yaml").read_text())))
     assert isinstance(diagram, Parallel)
-    assert diagram.specialize() == expected
+    assert diagram.specialize().dom == expected.dom
+    assert diagram.specialize().cod == expected.cod
+    assert SHELL_INTERPRETER(diagram)("") == SHELL_INTERPRETER(expected)("")

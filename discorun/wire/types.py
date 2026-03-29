@@ -14,6 +14,12 @@ class Diagram(monoidal.Diagram):
     """Typed wire diagrams."""
 
     ty_factory = Ty
+    
+    @classmethod
+    def bubble(cls, inner, **kwargs):
+        """Categorical bubble factory that preserves the diagram class."""
+        res = super().bubble(inner, **kwargs)
+        return cls(res.inside, res.dom, res.cod)
 
 
 def Id(x=Ty()):

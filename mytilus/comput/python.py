@@ -25,6 +25,7 @@ def _constant(value):
 
 def uev(function, argument):
     """DisCoPy-level universal evaluator ``{} : P x A -> B``."""
+    # Standard Python function application.
     return tuplify(
         (
             untuplify(tuplify(function))(
@@ -41,7 +42,7 @@ def run(function, argument):
 
 def runtime_values(value):
     """Normalize one runtime value under the Python-computation tuple convention."""
-    return tuplify(untuplify(tuplify(value)))
+    return value if isinstance(value, tuple) else (value,)
 
 
 def pipe(stages, *, input):
@@ -61,16 +62,16 @@ def pev(program, static_input):
 
 def runtime_value_box(value, *, name=None, cod=None):
     """Build one closed computation box carrying a runtime value."""
+    from discorun.comput import boxes as comput_boxes
     cod = program_ty if cod is None else cod
-    box = computer.Box(repr(value) if name is None else name, computer.Ty(), cod)
-    box.value = value
-    return box
+    return comput_boxes.Data(cod, value=value, name=name)
 
 
 class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
     """Interpret evaluators, specializers, and interpreters as Python functions."""
 
     def __init__(self):
+        self.program_ty = program_ty
         metaprog_core.Specializer.__init__(
             self,
             dom=computer.Category(),
@@ -78,7 +79,17 @@ class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
         )
 
     def _identity_object(self, ob):
-        del ob
+        # Chapter 7 status-triple wires carry actual Python data.
+        if isinstance(ob, type):
+            return ob
+        name = getattr(ob, "name", None)
+        if name in ("stdout", "stderr"):
+            return str
+        if name == "rc":
+            return int
+        if name in ("sh", "python"):
+            from collections.abc import Callable
+            return Callable
         return object
 
     def _is_evaluator_box(self, box):
@@ -131,7 +142,17 @@ class PythonDataServices(DataServiceFunctor):
         )
 
     def object(self, ob):
-        del ob
+        # Chapter 7 status-triple wires carry actual Python data.
+        if isinstance(ob, type):
+            return ob
+        name = getattr(ob, "name", None)
+        if name in ("stdout", "stderr"):
+            return str
+        if name == "rc":
+            return int
+        if name in ("sh", "python"):
+            from collections.abc import Callable
+            return Callable
         return object
 
     def copy_ar(self, dom, cod):
@@ -150,10 +171,3 @@ class PythonDataServices(DataServiceFunctor):
         raise TypeError(f"unsupported Python data-service box: {box!r}")
 
 
-class ShellPythonDataServices(PythonDataServices):
-    """Python data services with shell-program object interpretation."""
-
-    def object(self, ob):
-        if isinstance(ob, computer.ProgramOb):
-            return Callable
-        return str

@@ -1,6 +1,7 @@
 """Chapter 1 wire services: copying, deleting, swapping, and their functors."""
 
-from .functions import Box, Functor
+from discopy import monoidal
+from .functions import Box, Functor, Diagram
 from .types import Ty
 
 
@@ -36,6 +37,19 @@ class Swap(Box):
 class DataServiceFunctor(Functor):
     """Functor interpreting copy, delete, and swap in a target category."""
 
+    def __call__(self, other):
+        if isinstance(other, Copy):
+            return self.copy_ar(self(other.dom), self(other.cod))
+        if isinstance(other, Delete):
+            return self.delete_ar(self(other.dom), self(other.cod))
+        if isinstance(other, Swap):
+            return self.swap_ar(self(other.left), self(other.right), self(other.dom), self(other.cod))
+        
+        # Streamline dispatch: generic bubbles.
+        if isinstance(other, monoidal.Bubble):
+             return self(other.arg)
+        return super().__call__(other)
+
     def __init__(self, *, dom=None, cod=None):
         Functor.__init__(
             self,
@@ -64,11 +78,5 @@ class DataServiceFunctor(Functor):
         raise TypeError(f"unsupported data-service box: {box!r}")
 
     def ar_map(self, box):
-        dom, cod = self(box.dom), self(box.cod)
-        if isinstance(box, Copy):
-            return self.copy_ar(dom, cod)
-        if isinstance(box, Delete):
-            return self.delete_ar(dom, cod)
-        if isinstance(box, Swap):
-            return self.swap_ar(self(box.left), self(box.right), dom, cod)
-        return self.data_ar(box, dom, cod)
+        # Specialized arrows (Copy, Swap, etc.) are handled in __call__ before reaching here.
+        return self.data_ar(box, self(box.dom), self(box.cod))
