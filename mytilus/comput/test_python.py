@@ -42,7 +42,7 @@ def test_runtime_values_reuses_python_tuple_convention():
 def test_pev_returns_residual_partial_program():
     program = lambda static_input, runtime_input: static_input + runtime_input
     residual = comput_python.pev(program, 7)
-    expected = partial(comput_python._apply_static_input, program, 7)
+    expected = partial(comput_python.apply_static_input, program, 7)
 
     assert_partial_ast_equal(residual, expected)
     assert residual(5) == 12
@@ -53,8 +53,8 @@ def test_python_computations_interpret_evaluator_specializer_and_interpreter_box
     evaluator = computations(computer.Computer(comput_python.program_ty, computer.Ty("A"), computer.Ty("B")))
     specializer = computations(metaprog_core.SpecializerBox(comput_python.program_ty))
     interpreter = computations(metaprog_core.InterpreterBox(comput_python.program_ty))
-    expected_specializer = partial(comput_python._constant, comput_python.pev)
-    expected_interpreter = partial(comput_python._constant, comput_python.uev)
+    expected_specializer = partial(comput_python.constant, comput_python.pev)
+    expected_interpreter = partial(comput_python.constant, comput_python.uev)
 
     assert evaluator(lambda value: value + 1, 2) == 3
     assert_partial_ast_equal(specializer.term, expected_specializer)

@@ -34,14 +34,10 @@ class PythonRuntime(
         return self.object_interpreter(self, ob)
 
     def state_update_ar(self, dom, cod):
-        return partial_category.PartialArrow(lambda state, _input: state, dom, cod)
+        return partial_category.PartialArrow(comput_python.keep_state, dom, cod)
 
     def output_ar(self, dom, cod):
-        return partial_category.PartialArrow(
-            lambda state, input_value: comput_python.uev(state, input_value),
-            dom,
-            cod,
-        )
+        return partial_category.PartialArrow(comput_python.uev, dom, cod)
 
     def _identity_object(self, ob):
         return self.object_interpreter(self, ob)

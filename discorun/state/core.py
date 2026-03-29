@@ -6,6 +6,7 @@ from ..comput import computer
 from ..metaprog import core as metaprog_core
 from ..metaprog.compile import RunSpecializer, RunInterpreter
 from ..pcc.core import ProgramClosedCategory
+from ..wire import functions as wire_functions
 
 
 class StateUpdateMap(computer.Box):
@@ -88,11 +89,11 @@ class Execution(Process):
         return execute(Q, self.A, self.B)
 
 
-class ProcessRunner(monoidal.Functor):
+class ProcessRunner(wire_functions.Functor):
     """Base interpreter of Eq. 7.1 process projections and wiring."""
 
     def __init__(self, cod):
-        monoidal.Functor.__init__(
+        wire_functions.Functor.__init__(
             self,
             ob=self.object,
             ar=self.ar_map,

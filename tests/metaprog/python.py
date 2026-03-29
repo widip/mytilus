@@ -214,33 +214,33 @@ def test_high_level_python_diagram_compiles_to_partial_ast():
 
     compiled = PYTHON_RUNTIME(diagram)
     expected = partial(
-        partial_category._then_inside,
+        partial_category.then_term,
         partial(
-            partial_category._then_inside,
-            partial(partial_category._identity),
+            partial_category.then_term,
+            partial(partial_category.identity_term),
             (object,),
             partial(
-                partial_category._tensor_inside,
+                partial_category.tensor_term,
                 partial(
-                    partial_category._tensor_inside,
-                    partial(partial_category._identity),
+                    partial_category.tensor_term,
+                    partial(partial_category.identity_term),
                     0,
                     (),
-                    partial(comput_python._constant, inc),
+                    partial(comput_python.constant, inc),
                     (object,),
                 ),
                 0,
                 (object,),
-                partial(partial_category._identity),
+                partial(partial_category.identity_term),
                 (object,),
             ),
         ),
         (object, object),
         partial(
-            partial_category._tensor_inside,
+            partial_category.tensor_term,
             partial(
-                partial_category._tensor_inside,
-                partial(partial_category._identity),
+                partial_category.tensor_term,
+                partial(partial_category.identity_term),
                 0,
                 (),
                 partial(comput_python.uev),
@@ -248,7 +248,7 @@ def test_high_level_python_diagram_compiles_to_partial_ast():
             ),
             2,
             (object,),
-            partial(partial_category._identity),
+            partial(partial_category.identity_term),
             (),
         ),
     )

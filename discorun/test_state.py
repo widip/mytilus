@@ -2,6 +2,7 @@ from discopy.cat import Category as Cat
 from discorun.comput import computer
 from discorun.comput.computer import Box, ComputableFunction, Computer, Copy, Program, ProgramTy, Ty
 from discorun.pcc.core import MonoidalComputer, ProgramClosedCategory
+from discorun.wire import functions as wire_functions
 from discorun.state.core import (
     Execution,
     InputOutputMap,
@@ -46,6 +47,10 @@ class DummyRunner(ProcessRunner):
         if isinstance(box, computer.Swap):
             return partial_category.PartialArrow(lambda left, right: (right, left), dom, cod)
         return None
+
+
+def test_process_runner_uses_discorun_functor_base():
+    assert issubclass(ProcessRunner, wire_functions.Functor)
 
 
 def test_eq_7_1_process_is_a_pair_of_functions():

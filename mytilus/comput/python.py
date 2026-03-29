@@ -14,22 +14,26 @@ from ..wire import partial as partial_category
 program_ty = computer.ProgramTy("python")
 
 
-def _apply_static_input(program, static_input, runtime_input):
+def apply_static_input(program, static_input, runtime_input):
     return program(
         static_input,
         untuplify(tuplify(runtime_input)),
     )
 
 
-def _constant(value):
+def constant(value):
     return value
+
+
+_apply_static_input = apply_static_input
+_constant = constant
 
 
 def pev(program, static_input):
     """DisCoPy-level partial evaluator ``[] : P x X -> P``."""
     program = untuplify(tuplify(program))
     static_input = untuplify(tuplify(static_input))
-    return partial(_apply_static_input, program, static_input)
+    return partial(apply_static_input, program, static_input)
 
 
 def _required_positional_arity(function):
@@ -47,17 +51,20 @@ def _required_positional_arity(function):
     return required
 
 
-def _apply_program(function, argument):
+def apply_program(function, argument):
     arity = _required_positional_arity(function)
     if arity is not None and arity > 1:
         return partial(function, argument)
     return function(argument)
 
 
+_apply_program = apply_program
+
+
 def uev(function, argument):
     """DisCoPy-level universal evaluator ``{} : P x A -> B``."""
     # Typed evaluation uses partial application as the universal residual runner.
-    return _apply_program(
+    return apply_program(
         untuplify(tuplify(function)),
         untuplify(tuplify(argument)),
     )
@@ -86,6 +93,10 @@ def runtime_value_box(value, *, name=None, cod=None):
     from discorun.comput import boxes as comput_boxes
     cod = program_ty if cod is None else cod
     return comput_boxes.Data(cod, value=value, name=name)
+
+
+def keep_state(state, _input):
+    return state
 
 
 class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
@@ -127,7 +138,7 @@ class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
             return partial_category.PartialArrow(uev, dom, cod)
         from discorun.comput import boxes as comput_boxes
         if isinstance(box, comput_boxes.Data) and hasattr(box, "value") and len(box.dom) == 0:
-            return partial_category.PartialArrow(partial(_constant, box.value), dom, cod)
+            return partial_category.PartialArrow(partial(constant, box.value), dom, cod)
         return None
 
     def _identity_arrow(self, box):
@@ -142,7 +153,7 @@ class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
             return metaprog_core.Specializer.specialize(self, other)
         dom, cod = self(other.dom), self(other.cod)
         if other.dom == computer.Ty() and other.cod == program_ty:
-            return partial_category.PartialArrow(partial(_constant, pev), dom, cod)
+            return partial_category.PartialArrow(partial(constant, pev), dom, cod)
         raise TypeError(f"unsupported Python specializer box: {other!r}")
 
     def interpret(self, other):
@@ -150,7 +161,7 @@ class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
             return metaprog_core.Interpreter.interpret(self, other)
         dom, cod = self(other.dom), self(other.cod)
         if other.dom == computer.Ty() and other.cod == program_ty:
-            return partial_category.PartialArrow(partial(_constant, uev), dom, cod)
+            return partial_category.PartialArrow(partial(constant, uev), dom, cod)
         raise TypeError(f"unsupported Python interpreter box: {other!r}")
 
 
@@ -201,5 +212,5 @@ class PythonDataServices(DataServiceFunctor):
 
     def data_ar(self, box, dom, cod):
         if isinstance(box, computer.Box) and box.dom == computer.Ty() and hasattr(box, "value"):
-            return partial_category.PartialArrow(partial(_constant, box.value), dom, cod)
+            return partial_category.PartialArrow(partial(constant, box.value), dom, cod)
         raise TypeError(f"unsupported Python data-service box: {box!r}")

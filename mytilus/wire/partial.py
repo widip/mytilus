@@ -18,7 +18,7 @@ from discopy.utils import (
 Ty = tuple[type, ...]
 
 
-def _identity(*xs):
+def identity_term(*xs):
     return untuplify(xs)
 
 
@@ -34,24 +34,31 @@ def _term(term: Callable):
     return term if isinstance(term, partial) else partial(term)
 
 
-def _then_inside(left_term, left_cod: Ty, right_term, *args):
+def then_term(left_term, left_cod: Ty, right_term, *args):
     return right_term(*_outputs(left_cod, left_term(*args)))
 
 
-def _tensor_inside(left_term, split: int, left_cod: Ty, right_term, right_cod: Ty, *xs):
+def tensor_term(left_term, split: int, left_cod: Ty, right_term, right_cod: Ty, *xs):
     left_xs, right_xs = xs[:split], xs[split:]
     return untuplify(
         _outputs(left_cod, left_term(*left_xs)) + _outputs(right_cod, right_term(*right_xs))
     )
 
 
-def _swap_inside(left: Ty, *xs):
+def swap_term(left: Ty, *xs):
     pivot = len(left)
     return untuplify(tuplify(xs)[pivot:] + tuplify(xs)[:pivot])
 
 
-def _copy_inside(n: int, *xs):
+def copy_term(n: int, *xs):
     return n * xs
+
+
+_identity = identity_term
+_then_inside = then_term
+_tensor_inside = tensor_term
+_swap_inside = swap_term
+_copy_inside = copy_term
 
 
 @dataclass(init=False)
@@ -73,7 +80,7 @@ class PartialArrow(Composable[type], Whiskerable):
 
     @classmethod
     def id(cls, dom: type) -> "PartialArrow":
-        return cls(_identity, tuplify(dom), tuplify(dom))
+        return cls(identity_term, tuplify(dom), tuplify(dom))
 
     def __call__(self, *xs):
         if self.type_checking:
@@ -96,7 +103,7 @@ class PartialArrow(Composable[type], Whiskerable):
         assert_isinstance(other, type(self))
         assert_iscomposable(self, other)
         return type(self)(
-            partial(_then_inside, self.inside, self.cod, other.inside),
+            partial(then_term, self.inside, self.cod, other.inside),
             self.dom,
             other.cod,
         )
@@ -105,7 +112,7 @@ class PartialArrow(Composable[type], Whiskerable):
         assert_isinstance(other, type(self))
         return type(self)(
             partial(
-                _tensor_inside,
+                tensor_term,
                 self.inside,
                 len(self.dom),
                 self.cod,
@@ -119,7 +126,7 @@ class PartialArrow(Composable[type], Whiskerable):
     @staticmethod
     def swap(left: Ty, right: Ty) -> "PartialArrow":
         return PartialArrow(
-            partial(_swap_inside, left),
+            partial(swap_term, left),
             dom=left + right,
             cod=right + left,
         )
@@ -128,7 +135,7 @@ class PartialArrow(Composable[type], Whiskerable):
 
     @staticmethod
     def copy(dom: Ty, n=2) -> "PartialArrow":
-        return PartialArrow(partial(_copy_inside, n), dom=dom, cod=n * dom)
+        return PartialArrow(partial(copy_term, n), dom=dom, cod=n * dom)
 
     @staticmethod
     def discard(dom: Ty) -> "PartialArrow":

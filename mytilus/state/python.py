@@ -64,14 +64,10 @@ class ProcessRunner(comput_python.PythonDataServices, state_core.ProcessRunner):
         return self.process_ar_map(box, dom, cod)
 
     def state_update_ar(self, dom, cod):
-        return partial_category.PartialArrow(lambda state, _input: state, dom, cod)
+        return partial_category.PartialArrow(comput_python.keep_state, dom, cod)
 
     def output_ar(self, dom, cod):
-        return partial_category.PartialArrow(
-            lambda state, input_value: comput_python.uev(state, input_value),
-            dom,
-            cod,
-        )
+        return partial_category.PartialArrow(comput_python.uev, dom, cod)
 
     def process_ar_map(self, box, dom, cod):
         """Standard functorial interpretation via categorical composition."""

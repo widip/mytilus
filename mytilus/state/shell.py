@@ -80,12 +80,6 @@ class ShellPythonDataServices(comput_python.PythonDataServices):
     def data_ar(self, box, dom, cod):
         from mytilus.wire.shell import Merge
         if isinstance(box, Merge):
-             # Principled status-triple merging for parallel shell paths.
-             def merge_triples(*args):
-                 # Zip expects triples, but discopy flattening may have combined them.
-                 triples = [args[i:i+3] for i in range(0, len(args), 3)]
-                 stdouts, rcs, stderrs = zip(*triples)
-                 return "".join(stdouts), max(rcs), "".join(stderrs)
              return partial_category.PartialArrow(merge_triples, dom, cod)
         return super().data_ar(box, dom, cod)
 
@@ -152,6 +146,33 @@ def parallel_io_diagram(branches):
     if len(branches) == 1:
         return branches[0]
     return Parallel(branches)
+
+
+def shell_uev(function, *tri):
+    """Apply one shell program closure to a status triple."""
+    v_stdin = tri[0]
+    v_rc = tri[1] if len(tri) > 1 else 0
+    v_stderr = tri[2] if len(tri) > 2 else ""
+
+    if isinstance(function, tuple):
+        from ..comput.shell import subprocess_run
+
+        result = subprocess_run(function, v_stdin, v_rc, v_stderr)
+        return result if isinstance(result, tuple) else (result, 0, "")
+
+    return function(v_stdin, v_rc=v_rc, v_stderr=v_stderr)
+
+
+def merge_triples(*results):
+    """Merge one parallel family of status triples."""
+    if not results:
+        return ("", 0, "")
+    triples = [results[i:i+3] for i in range(0, len(results), 3)]
+    return (
+        "".join(triple[0] for triple in triples),
+        triples[-1][1],
+        "".join(triple[2] for triple in triples),
+    )
 
 
 
@@ -390,19 +411,6 @@ class ShellPythonRuntime(ShellPythonDataServices, ProcessRunner, comput_python.P
 
     def output_ar(self, dom, cod):
         """Handle the 3->3 shell closure application: P x A -> B."""
-        def shell_uev(f, *tri):
-            # tri may be length 1 if called with only stdin string from the REPL.
-            v_stdin = tri[0]
-            v_rc = tri[1] if len(tri) > 1 else 0
-            v_stderr = tri[2] if len(tri) > 2 else ""
-
-            if isinstance(f, tuple):
-                from ..comput.shell import subprocess_run
-                res = subprocess_run(f, v_stdin, v_rc, v_stderr)
-                return res if isinstance(res, tuple) else (res, 0, "")
-
-            # Otherwise f is my command_partial/print_literal, call it with triples.
-            return f(v_stdin, v_rc=v_rc, v_stderr=v_stderr)
         return partial_category.PartialArrow(shell_uev, dom, cod)
 
     def process_ar_map(self, box, dom, cod):
@@ -410,13 +418,7 @@ class ShellPythonRuntime(ShellPythonDataServices, ProcessRunner, comput_python.P
         # Interpret structural fan-out, fan-in (Merge), and symmetry.
         from ..wire.shell import Merge
         if isinstance(box, Merge):
-            def merge_run(*results):
-                if not results: return ("", 0, "")
-                # Specialized status-triple merge: concatenate stdout/stderr, take last rc.
-                triples = [results[i:i+3] for i in range(0, len(results), 3)]
-                last_rc = triples[-1][1]
-                return ("".join(t[0] for t in triples), last_rc, "".join(t[2] for t in triples))
-            return partial_category.PartialArrow(merge_run, dom, cod)
+            return partial_category.PartialArrow(merge_triples, dom, cod)
         from discorun.wire import services as wire_services
         if isinstance(box, wire_services.Copy) or (hasattr(box, "name") and box.name == "∆"):
             # ∆: copies the input wires.
