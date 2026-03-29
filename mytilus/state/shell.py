@@ -204,7 +204,7 @@ class ShellToPythonProgram(state_core.ProcessSimulation):
     def ar_map(self, box):
         """Pure atomic mapping: assume other cases (bubbles) were handled in __call__."""
         res = self._identity_arrow(box)
-        if hasattr(res, "inside") and not isinstance(res, computer.Diagram):
+        if hasattr(res, "inside") and not isinstance(res, (computer.Diagram, monoidal.Diagram)):
              dom, cod = self(box.dom), self(box.cod)
              res = computer.Diagram(res.inside, dom, cod)
         return res
@@ -256,6 +256,9 @@ class ShellToPythonProgram(state_core.ProcessSimulation):
         from ..wire.shell import Merge
         if isinstance(item, Merge):
             return item
+
+        if isinstance(item, (metaprog_core.SpecializerBox, metaprog_core.InterpreterBox)):
+            return type(item)(PYTHON_PCC.program_ty, name=item.name)
 
         return item
 
@@ -315,8 +318,8 @@ class ShellInterpreter(ShellPythonDataServices, ProcessRunner, RunInterpreter):
 
     def __call__(self, other):
         """Principled total lowering: simulate (lower) the diagram before interpretation."""
-        if isinstance(other, metaprog_core.InterpreterBox):
-             return self.interpret(other)
+        if isinstance(other, (metaprog_core.InterpreterBox, metaprog_core.SpecializerBox)):
+             return self.python_runtime(other)
         if not isinstance(other, (computer.Diagram, monoidal.Diagram)):
             # Delegate to standard Functor dispatch for objects, types, and specialized atoms.
             return super().__call__(other)
@@ -371,11 +374,12 @@ class ShellInterpreter(ShellPythonDataServices, ProcessRunner, RunInterpreter):
         # Override to ensure Shell-specific atom types.
         return ShellPythonDataServices.object(self, ob)
 
-class ShellPythonRuntime(ShellPythonDataServices, ProcessRunner):
+class ShellPythonRuntime(ShellPythonDataServices, ProcessRunner, comput_python.PythonComputations):
     """Python runtime with shell-specific process evaluation."""
 
     def __init__(self):
         ShellPythonDataServices.__init__(self)
+        comput_python.PythonComputations.__init__(self)
         ProcessRunner.__init__(self)
         # Use a lambda to ensure the (self, ob) convention matches the robust object().
         self.object_interpreter = lambda runtime, ob: self.object(ob)

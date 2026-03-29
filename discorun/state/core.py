@@ -190,12 +190,16 @@ class ProcessSimulation(RunSpecializer):
         return super().__call__(other)
 
     def ar_map(self, box):
-        """Pure atomic mapping: mapping one arrow, ensuring domain/codomain transport."""
+        """Pure atomic mapping: assume other cases (bubbles) were handled in __call__."""
         res = self._identity_arrow(box)
         if hasattr(res, "inside") and not isinstance(res, computer.Diagram):
              dom, cod = self(box.dom), self(box.cod)
              res = computer.Diagram(res.inside, dom, cod)
         return res
+
+    def specialize(self, other):
+        """Ensure specializer boxes are also transformed along the simulation."""
+        return self.simulation(other)
 
     def simulation(self, item):
         """Simulation action on objects and non-projection arrows."""

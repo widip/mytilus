@@ -30,8 +30,8 @@ def _outputs(cod: Ty, result):
     return (result,)
 
 
-def _term(inside: Callable):
-    return inside if isinstance(inside, partial) else partial(inside)
+def _term(term: Callable):
+    return term if isinstance(term, partial) else partial(term)
 
 
 def _then_inside(left_term, left_cod: Ty, right_term, *args):
@@ -54,18 +54,20 @@ def _copy_inside(n: int, *xs):
     return n * xs
 
 
-@dataclass
+@dataclass(init=False)
 class PartialArrow(Composable[type], Whiskerable):
     """Python partial term with typed sequential and monoidal composition."""
 
     inside: Callable
+    term: Callable
     dom: Ty
     cod: Ty
 
     type_checking = True
 
-    def __init__(self, inside: Callable, dom: type, cod: type):
-        self.inside = _term(inside)
+    def __init__(self, term: Callable, dom: type, cod: type):
+        self.inside = _term(term)
+        self.term = self.inside
         self.dom = tuplify(dom)
         self.cod = tuplify(cod)
 
@@ -76,17 +78,16 @@ class PartialArrow(Composable[type], Whiskerable):
     def __call__(self, *xs):
         if self.type_checking:
             if len(xs) != len(self.dom):
-                raise ValueError((self.dom, xs))
+                raise ValueError(f"Expected {len(self.dom)} arguments, got {len(xs)}")
             for x, t in zip(xs, self.dom):
                 if not callable(x):
                     assert_isinstance(x, t)
         ys = self.inside(*xs)
         if self.type_checking:
-            if len(self.cod) != 1 and (
-                not isinstance(ys, tuple) or len(self.cod) != len(ys)
-            ):
-                raise RuntimeError((self.cod, ys))
-            for y, t in zip(_outputs(self.cod, ys), self.cod):
+            outputs = _outputs(self.cod, ys)
+            if len(outputs) != len(self.cod):
+                raise RuntimeError(f"Expected {len(self.cod)} results, got {len(outputs)}")
+            for y, t in zip(outputs, self.cod):
                 if not callable(y):
                     assert_isinstance(y, t)
         return ys
@@ -94,11 +95,14 @@ class PartialArrow(Composable[type], Whiskerable):
     def then(self, other: "PartialArrow") -> "PartialArrow":
         assert_isinstance(other, type(self))
         assert_iscomposable(self, other)
-        return type(
-            self
-        )(partial(_then_inside, self.inside, self.cod, other.inside), self.dom, other.cod)
+        return type(self)(
+            partial(_then_inside, self.inside, self.cod, other.inside),
+            self.dom,
+            other.cod,
+        )
 
     def tensor(self, other: "PartialArrow") -> "PartialArrow":
+        assert_isinstance(other, type(self))
         return type(self)(
             partial(
                 _tensor_inside,

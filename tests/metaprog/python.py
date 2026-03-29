@@ -38,6 +38,19 @@ def iter_partial_ast(term):
             yield from iter_partial_ast(value)
 
 
+def assert_partial_ast_equal(actual, expected):
+    assert isinstance(actual, partial)
+    assert isinstance(expected, partial)
+    assert actual.func is expected.func
+    assert actual.keywords == expected.keywords
+    assert len(actual.args) == len(expected.args)
+    for actual_arg, expected_arg in zip(actual.args, expected.args):
+        if isinstance(expected_arg, partial):
+            assert_partial_ast_equal(actual_arg, expected_arg)
+            continue
+        assert actual_arg is expected_arg if callable(expected_arg) else actual_arg == expected_arg
+
+
 TEXTBOOK_PROJECTION_KW = {
     "specializer_box": PYTHON_SPECIALIZER_BOX,
     "evaluator_box": PYTHON_EVALUATOR_BOX,
@@ -170,13 +183,13 @@ def test_functor_returns_partial_ast_for_supercompilation():
     compiler_arrow = PYTHON_RUNTIME(PYTHON_COMPILER)
     compiler_generator_arrow = PYTHON_RUNTIME(PYTHON_COMPILER_GENERATOR)
 
-    compiler_nodes = list(iter_partial_ast(compiler_arrow.inside))
-    generator_nodes = list(iter_partial_ast(compiler_generator_arrow.inside))
+    compiler_nodes = list(iter_partial_ast(compiler_arrow.term))
+    generator_nodes = list(iter_partial_ast(compiler_generator_arrow.term))
 
     assert partial_category.is_partial_arrow(compiler_arrow)
     assert partial_category.is_partial_arrow(compiler_generator_arrow)
-    assert isinstance(compiler_arrow.inside, partial)
-    assert isinstance(compiler_generator_arrow.inside, partial)
+    assert isinstance(compiler_arrow.term, partial)
+    assert isinstance(compiler_generator_arrow.term, partial)
     assert comput_python.pev in compiler_nodes
     assert comput_python.uev in compiler_nodes
     assert generator_nodes.count(comput_python.pev) >= 2
@@ -188,6 +201,60 @@ def test_functor_returns_partial_ast_for_supercompilation():
 
     assert compiler_from_ast(source_program)(4) == 12
     assert compiler_generator_from_ast(interpreter)(source_program)(4) == 12
+
+
+def test_high_level_python_diagram_compiles_to_partial_ast():
+    def inc(value):
+        return value + 1
+
+    input_ty = computer.Ty("A")
+    output_ty = computer.Ty("B")
+    program = closed_value(inc, "X")
+    diagram = program @ input_ty >> computer.Computer(comput_python.program_ty, input_ty, output_ty)
+
+    compiled = PYTHON_RUNTIME(diagram)
+    expected = partial(
+        partial_category._then_inside,
+        partial(
+            partial_category._then_inside,
+            partial(partial_category._identity),
+            (object,),
+            partial(
+                partial_category._tensor_inside,
+                partial(
+                    partial_category._tensor_inside,
+                    partial(partial_category._identity),
+                    0,
+                    (),
+                    partial(comput_python._constant, inc),
+                    (object,),
+                ),
+                0,
+                (object,),
+                partial(partial_category._identity),
+                (object,),
+            ),
+        ),
+        (object, object),
+        partial(
+            partial_category._tensor_inside,
+            partial(
+                partial_category._tensor_inside,
+                partial(partial_category._identity),
+                0,
+                (),
+                partial(comput_python.uev),
+                (object,),
+            ),
+            2,
+            (object,),
+            partial(partial_category._identity),
+            (),
+        ),
+    )
+
+    assert partial_category.is_partial_arrow(compiled)
+    assert_partial_ast_equal(compiled.term, expected)
 
 
 def test_sec_6_2_2_accepts_arbitrary_static_input_type():

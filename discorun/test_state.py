@@ -1,3 +1,4 @@
+from discopy.cat import Category as Cat
 from discorun.comput import computer
 from discorun.comput.computer import Box, ComputableFunction, Computer, Copy, Program, ProgramTy, Ty
 from discorun.pcc.core import MonoidalComputer, ProgramClosedCategory
@@ -21,7 +22,7 @@ H_ty, L_ty = ProgramTy("H"), ProgramTy("L")
 
 class DummyRunner(ProcessRunner):
     def __init__(self):
-        ProcessRunner.__init__(self, cod=partial_category.Category())
+        ProcessRunner.__init__(self, cod=Cat(partial_category.Ty, partial_category.PartialArrow))
 
     def object(self, ob):
         del ob

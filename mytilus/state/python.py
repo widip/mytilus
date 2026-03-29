@@ -1,4 +1,5 @@
 from discopy import monoidal
+from discopy.cat import Category as Cat
 from discorun.comput import computer
 from discorun.comput import boxes as discorun_comput_boxes
 from discorun.state import core as state_core
@@ -36,7 +37,7 @@ class ProcessRunner(comput_python.PythonDataServices, state_core.ProcessRunner):
 
     def __init__(self):
         comput_python.PythonDataServices.__init__(self)
-        state_core.ProcessRunner.__init__(self, cod=partial_category.Category())
+        state_core.ProcessRunner.__init__(self, cod=Cat(partial_category.Ty, partial_category.PartialArrow))
 
     def __call__(self, other):
         if isinstance(other, state_core.StateUpdateMap):
@@ -76,8 +77,10 @@ class ProcessRunner(comput_python.PythonDataServices, state_core.ProcessRunner):
         """Standard functorial interpretation via categorical composition."""
         if partial_category.is_partial_arrow(box):
             return box
-        if isinstance(box, discorun_comput_boxes.Data):
+        try:
             return self.data_ar(box, dom, cod)
+        except TypeError:
+            pass
         if isinstance(box, monoidal.Bubble):
             return self(box.arg)
         raise TypeError(f"unsupported process runner box: {box!r}")

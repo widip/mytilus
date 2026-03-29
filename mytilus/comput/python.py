@@ -4,6 +4,7 @@ from collections.abc import Callable
 
 from discopy.utils import tuplify, untuplify
 
+from discopy.cat import Category as Cat
 from discorun.comput import computer
 from discorun.metaprog import core as metaprog_core
 from discorun.wire.services import DataServiceFunctor
@@ -24,8 +25,11 @@ def _constant(value):
     return value
 
 
-def _return_value(value):
-    return value
+def pev(program, static_input):
+    """DisCoPy-level partial evaluator ``[] : P x X -> P``."""
+    program = untuplify(tuplify(program))
+    static_input = untuplify(tuplify(static_input))
+    return partial(_apply_static_input, program, static_input)
 
 
 def _required_positional_arity(function):
@@ -77,13 +81,6 @@ def pipe(stages, *, input):
     return stdout
 
 
-def pev(program, static_input):
-    """DisCoPy-level partial evaluator ``[] : P x X -> P``."""
-    program = untuplify(tuplify(program))
-    static_input = untuplify(tuplify(static_input))
-    return partial(_apply_static_input, program, static_input)
-
-
 def runtime_value_box(value, *, name=None, cod=None):
     """Build one closed computation box carrying a runtime value."""
     from discorun.comput import boxes as comput_boxes
@@ -99,7 +96,7 @@ class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
         metaprog_core.Specializer.__init__(
             self,
             dom=computer.Category(),
-            cod=partial_category.Category(),
+            cod=Cat(partial_category.Ty, partial_category.PartialArrow),
         )
 
     def _identity_object(self, ob):
@@ -128,6 +125,9 @@ class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
     def map_computation(self, box, dom, cod):
         if self._is_evaluator_box(box):
             return partial_category.PartialArrow(uev, dom, cod)
+        from discorun.comput import boxes as comput_boxes
+        if isinstance(box, comput_boxes.Data) and hasattr(box, "value") and len(box.dom) == 0:
+            return partial_category.PartialArrow(partial(_constant, box.value), dom, cod)
         return None
 
     def _identity_arrow(self, box):
@@ -142,7 +142,7 @@ class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
             return metaprog_core.Specializer.specialize(self, other)
         dom, cod = self(other.dom), self(other.cod)
         if other.dom == computer.Ty() and other.cod == program_ty:
-            return partial_category.PartialArrow(partial(_return_value, pev), dom, cod)
+            return partial_category.PartialArrow(partial(_constant, pev), dom, cod)
         raise TypeError(f"unsupported Python specializer box: {other!r}")
 
     def interpret(self, other):
@@ -150,8 +150,21 @@ class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
             return metaprog_core.Interpreter.interpret(self, other)
         dom, cod = self(other.dom), self(other.cod)
         if other.dom == computer.Ty() and other.cod == program_ty:
-            return partial_category.PartialArrow(partial(_return_value, uev), dom, cod)
+            return partial_category.PartialArrow(partial(_constant, uev), dom, cod)
         raise TypeError(f"unsupported Python interpreter box: {other!r}")
+
+
+def copy_op(n, *xs):
+    return xs * n
+
+
+def discard_op(*xs):
+    return ()
+
+
+def swap_op(left_len, *xs):
+    from discopy.utils import untuplify
+    return untuplify(xs[left_len:] + xs[:left_len])
 
 
 class PythonDataServices(DataServiceFunctor):
@@ -161,7 +174,7 @@ class PythonDataServices(DataServiceFunctor):
         DataServiceFunctor.__init__(
             self,
             dom=computer.Category(),
-            cod=partial_category.Category(),
+            cod=Cat(partial_category.Ty, partial_category.PartialArrow),
         )
 
     def object(self, ob):
@@ -178,14 +191,13 @@ class PythonDataServices(DataServiceFunctor):
         return object
 
     def copy_ar(self, dom, cod):
-        return partial_category.PartialArrow.copy(dom, n=2)
+        return partial_category.PartialArrow(partial(copy_op, 2), dom, cod)
 
     def delete_ar(self, dom, cod):
-        return partial_category.PartialArrow.discard(dom)
+        return partial_category.PartialArrow(discard_op, dom, cod)
 
     def swap_ar(self, left, right, dom, cod):
-        del dom, cod
-        return partial_category.PartialArrow.swap(left, right)
+        return partial_category.PartialArrow(partial(swap_op, len(left)), dom, cod)
 
     def data_ar(self, box, dom, cod):
         if isinstance(box, computer.Box) and box.dom == computer.Ty() and hasattr(box, "value"):

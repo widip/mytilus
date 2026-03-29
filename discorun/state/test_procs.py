@@ -1,4 +1,5 @@
 from discopy import monoidal
+from discopy.cat import Category as Cat
 import pytest
 from discorun.state.core import Execution, InputOutputMap, ProcessRunner, StateUpdateMap
 from mytilus.wire import partial as partial_category
@@ -26,7 +27,7 @@ def test_eq_71_pairing_logic():
         def process_ar_map(self, box, dom, cod):
             raise NotImplementedError()
 
-    runner = SimpleProcessRunner(cod=partial_category.Category())
+    runner = SimpleProcessRunner(cod=Cat(partial_category.Ty, partial_category.PartialArrow))
 
     # Verify sta q interpretation (Functorial API)
     sta_q = StateUpdateMap("mock", X, A)
