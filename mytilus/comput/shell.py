@@ -1,4 +1,7 @@
-"""Shell-language program constants."""
+import os
+import subprocess
+import logging
+import shlex
 
 from discorun.comput import computer
 from discorun.comput import boxes as comput_boxes
@@ -56,13 +59,9 @@ def subprocess_run(argv, prev_stdout, prev_rc, prev_stderr):
     # Status-triple hardening: skip and propagate if previous command failed.
     if prev_rc != 0:
         return (prev_stdout, prev_rc, prev_stderr)
-
-    import sys
-    import subprocess
-    import os
-
+    trace_logger = logging.getLogger("mytilus.trace")
     if os.getenv("MYTILUS_TRACE") == "1":
-        print(f"+ {' '.join(argv)}", file=sys.stderr)
+        trace_logger.info(f"+ {shlex.join(argv)}")
 
     completed = subprocess.run(
         argv,
@@ -71,4 +70,6 @@ def subprocess_run(argv, prev_stdout, prev_rc, prev_stderr):
         capture_output=True,
         check=False,
     )
+    if completed.returncode != 0 and os.getenv("MYTILUS_TRACE") == "1":
+        trace_logger.info(f"  (exit {completed.returncode})")
     return (completed.stdout, completed.returncode, prev_stderr + completed.stderr)
