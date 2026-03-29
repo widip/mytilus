@@ -1,6 +1,7 @@
-from discopy import monoidal, python
+from discopy import monoidal
 import pytest
 from discorun.state.core import Execution, InputOutputMap, ProcessRunner, StateUpdateMap
+from mytilus.wire import partial as partial_category
 
 
 def test_eq_71_pairing_logic():
@@ -16,16 +17,16 @@ def test_eq_71_pairing_logic():
             
         def state_update_ar(self, dom, cod):
             # sta q: (x, a) -> x+1
-            return python.Function(lambda x, a: (x + 1,), dom, cod)
+            return partial_category.PartialArrow(lambda x, a: (x + 1,), dom, cod)
 
         def output_ar(self, dom, cod):
             # out q: (x, a) -> x * a
-            return python.Function(lambda x, a: (x * a,), dom, cod)
+            return partial_category.PartialArrow(lambda x, a: (x * a,), dom, cod)
 
         def process_ar_map(self, box, dom, cod):
             raise NotImplementedError()
 
-    runner = SimpleProcessRunner(cod=python.Category())
+    runner = SimpleProcessRunner(cod=partial_category.Category())
 
     # Verify sta q interpretation (Functorial API)
     sta_q = StateUpdateMap("mock", X, A)
@@ -55,20 +56,19 @@ def test_execution_composition():
         def object(self, ob):
             return str
         def state_update_ar(self, dom, cod):
-            return python.Function(lambda x, a: (x,), dom, cod)
+            return partial_category.PartialArrow(lambda x, a: (x,), dom, cod)
         def output_ar(self, dom, cod):
-            return python.Function(lambda x, a: (a,), dom, cod)
+            return partial_category.PartialArrow(lambda x, a: (a,), dom, cod)
 
     # Input to Execution is (P x A) where P matches the InputOutputMap.
     # The runner of InputOutputMap is a function.
     p_fn = lambda x, a: (a + "!")
 
     # Execution: (p_fn, x, a) -> p_fn(x, a)
-    # Mapping to object/type for Function: dom=(f_type, str, str), cod=(str,)
-    # Note: discopy.python.Function expects types as classes or tuples of classes.
+    # Mapping to object/type for the partial category: dom=(f_type, str, str), cod=(str,)
     dom = (lambda: None, str, str)
     cod = (str,)
-    exec_fn = python.Function(lambda f, x, a: (f(x, a),), dom, cod)
+    exec_fn = partial_category.PartialArrow(lambda f, x, a: (f(x, a),), dom, cod)
 
     assert exec_fn(p_fn, "state", "input") == ("input!",)
 

@@ -1,6 +1,6 @@
-from discopy import python
 from discorun.state import core as state_core
 from ..comput import python as comput_python
+from ..wire import partial as partial_category
 
 
 class PythonRuntime(
@@ -13,14 +13,24 @@ class PythonRuntime(
     object_interpreter = staticmethod(comput_python.PythonDataServices.object)
 
     def __init__(self):
-        state_core.ProcessRunner.__init__(self, cod=python.Category())
+        state_core.ProcessRunner.__init__(self, cod=partial_category.Category())
         comput_python.PythonComputations.__init__(self)
 
     def process_ar_map(self, box, dom, cod):
         """Standard functorial interpretation via categorical composition."""
-        if isinstance(box, python.Function):
+        if partial_category.is_partial_arrow(box):
             return box
         raise TypeError(f"unsupported python runtime box: {box!r}")
+
+    def state_update_ar(self, dom, cod):
+        return partial_category.PartialArrow(lambda state, _input: state, dom, cod)
+
+    def output_ar(self, dom, cod):
+        return partial_category.PartialArrow(
+            lambda state, input_value: comput_python.uev(state, input_value),
+            dom,
+            cod,
+        )
 
     def _identity_object(self, ob):
         return self.object_interpreter(self, ob)

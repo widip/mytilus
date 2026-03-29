@@ -3,7 +3,7 @@
 import subprocess
 from collections.abc import Callable
 
-from discopy import monoidal, python
+from discopy import monoidal
 
 from discorun.comput import computer
 from discorun.metaprog import core as metaprog_core
@@ -19,6 +19,7 @@ from ..comput import python as comput_python
 from ..comput import shell as shell_lang
 from ..metaprog import python as metaprog_python
 from ..metaprog import shell as metaprog_shell
+from ..wire import partial as partial_category
 from ..wire import shell as shell_wire
 from .python import ProcessRunner
 from discorun.comput import boxes as discorun_comput_boxes
@@ -85,7 +86,7 @@ class ShellPythonDataServices(comput_python.PythonDataServices):
                  triples = [args[i:i+3] for i in range(0, len(args), 3)]
                  stdouts, rcs, stderrs = zip(*triples)
                  return "".join(stdouts), max(rcs), "".join(stderrs)
-             return python.Function(merge_triples, dom, cod)
+             return partial_category.PartialArrow(merge_triples, dom, cod)
         return super().data_ar(box, dom, cod)
 
 
@@ -220,7 +221,7 @@ class ShellToPythonProgram(state_core.ProcessSimulation):
                 argv = item.argv
                 from ..comput.shell import subprocess_run
 
-                def command_callable(stdout, v_rc=0, v_stderr="", **kwargs):
+                def command_partial(stdout, v_rc=0, v_stderr="", **kwargs):
                     resolved_argv = _resolve_command_argv(argv, stdout)
                     try:
                         res = subprocess_run(resolved_argv, stdout, v_rc, v_stderr)
@@ -229,7 +230,7 @@ class ShellToPythonProgram(state_core.ProcessSimulation):
                         return stdout, 1, str(e)
 
                 return comput_python.runtime_value_box(
-                    command_callable,
+                    command_partial,
                     name=item.name,
                     cod=PYTHON_PCC.program_ty,
                 )
@@ -262,7 +263,7 @@ def shell_program_runner(program):
     """Principled wrapper for running a shell program via the unified interpreter."""
     if isinstance(program, (shell_lang.Empty, shell_lang.Literal, shell_lang.Command)):
         mapped = ShellToPythonProgram()(program)
-        return python.Function(
+        return partial_category.PartialArrow(
             mapped.boxes[0].value,
             dom=(str, int, str),
             cod=(str, int, str),
@@ -304,7 +305,7 @@ def _compile_shell_program(program):
 
 
 class ShellInterpreter(ShellPythonDataServices, ProcessRunner, RunInterpreter):
-    """Interpret shell diagrams as Python callables."""
+    """Interpret shell diagrams as Python partial terms."""
 
     def __init__(self, program_functor, python_runtime):
         self.program_functor = program_functor
@@ -330,7 +331,7 @@ class ShellInterpreter(ShellPythonDataServices, ProcessRunner, RunInterpreter):
             lowered = computer.Diagram(lowered.inside, lowered.dom, lowered.cod)
         
         result = self.python_runtime(lowered)
-        if (isinstance(result, python.Function) and len(result.dom) >= 3 
+        if (partial_category.is_partial_arrow(result) and len(result.dom) >= 3
             and result.dom[-3] is str and result.dom[-2] is int and result.dom[-1] is str):
             # Polymorphic shell runner: handle stdin-only or full status triple for the IO part.
             def shell_run_polymorphic(*xs):
@@ -357,7 +358,7 @@ class ShellInterpreter(ShellPythonDataServices, ProcessRunner, RunInterpreter):
                 if len(result.cod) == 4 and len(res) == 4:
                     return (res[0], (res[1], res[2], res[3]))
                 return res
-            res_fun = python.Function(shell_run_polymorphic, result.dom, result.cod)
+            res_fun = partial_category.PartialArrow(shell_run_polymorphic, result.dom, result.cod)
             res_fun.type_checking = False
             return res_fun
         return result
@@ -381,7 +382,7 @@ class ShellPythonRuntime(ShellPythonDataServices, ProcessRunner):
 
     def state_update_ar(self, dom, cod):
         """Handle the identity program state update: P x A -> P."""
-        return python.Function(lambda p, *tri: (p,), dom, cod)
+        return partial_category.PartialArrow(lambda p, *tri: (p,), dom, cod)
 
     def output_ar(self, dom, cod):
         """Handle the 3->3 shell closure application: P x A -> B."""
@@ -396,9 +397,9 @@ class ShellPythonRuntime(ShellPythonDataServices, ProcessRunner):
                 res = subprocess_run(f, v_stdin, v_rc, v_stderr)
                 return res if isinstance(res, tuple) else (res, 0, "")
 
-            # Otherwise f is my command_callable/print_literal, call it with triples.
+            # Otherwise f is my command_partial/print_literal, call it with triples.
             return f(v_stdin, v_rc=v_rc, v_stderr=v_stderr)
-        return python.Function(shell_uev, dom, cod)
+        return partial_category.PartialArrow(shell_uev, dom, cod)
 
     def process_ar_map(self, box, dom, cod):
         """Interpret specialized shell wires in the target category."""
@@ -411,16 +412,16 @@ class ShellPythonRuntime(ShellPythonDataServices, ProcessRunner):
                 triples = [results[i:i+3] for i in range(0, len(results), 3)]
                 last_rc = triples[-1][1]
                 return ("".join(t[0] for t in triples), last_rc, "".join(t[2] for t in triples))
-            return python.Function(merge_run, dom, cod)
+            return partial_category.PartialArrow(merge_run, dom, cod)
         from discorun.wire import services as wire_services
         if isinstance(box, wire_services.Copy) or (hasattr(box, "name") and box.name == "∆"):
             # ∆: copies the input wires.
             n = len(cod) // len(dom)
-            return python.Function(lambda *t: t * n, dom, cod)
+            return partial_category.PartialArrow(lambda *t: t * n, dom, cod)
 
         if isinstance(box, wire_services.Swap) or (hasattr(box, "name") and box.name == "Swap"):
             # Swap: (t1, t2) -> (t2, t1)
-            return python.Function(lambda *t: t[3:] + t[:3], dom, cod)
+            return partial_category.PartialArrow(lambda *t: t[3:] + t[:3], dom, cod)
 
         # Let the base class handle standard Python runtime logic (Bubble, Function, etc.).
         return ProcessRunner.process_ar_map(self, box, dom, cod)

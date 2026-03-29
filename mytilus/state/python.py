@@ -1,10 +1,11 @@
-from discopy import monoidal, python
+from discopy import monoidal
 from discorun.comput import computer
 from discorun.comput import boxes as discorun_comput_boxes
 from discorun.state import core as state_core
 from discorun.wire import services as wire_services
 from ..comput import python as comput_python
 from ..metaprog import shell as shell_lang # Pipeline/Parallel are currently here
+from ..wire import partial as partial_category
 
 
 def _run_paths(paths, stdin):
@@ -35,7 +36,7 @@ class ProcessRunner(comput_python.PythonDataServices, state_core.ProcessRunner):
 
     def __init__(self):
         comput_python.PythonDataServices.__init__(self)
-        state_core.ProcessRunner.__init__(self, cod=python.Category())
+        state_core.ProcessRunner.__init__(self, cod=partial_category.Category())
 
     def __call__(self, other):
         if isinstance(other, state_core.StateUpdateMap):
@@ -62,14 +63,18 @@ class ProcessRunner(comput_python.PythonDataServices, state_core.ProcessRunner):
         return self.process_ar_map(box, dom, cod)
 
     def state_update_ar(self, dom, cod):
-        return python.Function(lambda state, _input: state, dom, cod)
+        return partial_category.PartialArrow(lambda state, _input: state, dom, cod)
 
     def output_ar(self, dom, cod):
-        return python.Function(lambda state, input_value: comput_python.uev(state, input_value), dom, cod)
+        return partial_category.PartialArrow(
+            lambda state, input_value: comput_python.uev(state, input_value),
+            dom,
+            cod,
+        )
 
     def process_ar_map(self, box, dom, cod):
         """Standard functorial interpretation via categorical composition."""
-        if isinstance(box, python.Function):
+        if partial_category.is_partial_arrow(box):
             return box
         if isinstance(box, discorun_comput_boxes.Data):
             return self.data_ar(box, dom, cod)

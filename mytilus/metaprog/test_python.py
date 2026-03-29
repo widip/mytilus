@@ -19,5 +19,5 @@ def test_python_runtime_combines_computations_and_data_services():
     evaluator = runtime(computer.Computer(comput_python.program_ty, computer.Ty("A"), computer.Ty("B")))
     residual_program = runtime(comput_python.runtime_value_box(lambda value: value + 3))
 
-    assert evaluator(lambda value: value + 1, 2) == (3,)
-    assert residual_program()[0](4) == 7
+    assert evaluator(lambda value: value + 1, 2) == 3
+    assert residual_program()(4) == 7

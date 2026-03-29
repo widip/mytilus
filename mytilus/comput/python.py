@@ -1,12 +1,13 @@
 from functools import partial
+import inspect
 from collections.abc import Callable
 
-from discopy import python
 from discopy.utils import tuplify, untuplify
 
 from discorun.comput import computer
 from discorun.metaprog import core as metaprog_core
 from discorun.wire.services import DataServiceFunctor
+from ..wire import partial as partial_category
 
 
 program_ty = computer.ProgramTy("python")
@@ -20,18 +21,41 @@ def _apply_static_input(program, static_input, runtime_input):
 
 
 def _constant(value):
-    return tuplify((value,))
+    return value
+
+
+def _return_value(value):
+    return value
+
+
+def _required_positional_arity(function):
+    try:
+        signature = inspect.signature(function)
+    except (TypeError, ValueError):
+        return None
+    required = 0
+    for parameter in signature.parameters.values():
+        if parameter.kind in (
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        ) and parameter.default is inspect.Parameter.empty:
+            required += 1
+    return required
+
+
+def _apply_program(function, argument):
+    arity = _required_positional_arity(function)
+    if arity is not None and arity > 1:
+        return partial(function, argument)
+    return function(argument)
 
 
 def uev(function, argument):
     """DisCoPy-level universal evaluator ``{} : P x A -> B``."""
-    # Standard Python function application.
-    return tuplify(
-        (
-            untuplify(tuplify(function))(
-                untuplify(tuplify(argument)),
-            ),
-        ),
+    # Typed evaluation uses partial application as the universal residual runner.
+    return _apply_program(
+        untuplify(tuplify(function)),
+        untuplify(tuplify(argument)),
     )
 
 
@@ -57,7 +81,7 @@ def pev(program, static_input):
     """DisCoPy-level partial evaluator ``[] : P x X -> P``."""
     program = untuplify(tuplify(program))
     static_input = untuplify(tuplify(static_input))
-    return tuplify((partial(_apply_static_input, program, static_input),))
+    return partial(_apply_static_input, program, static_input)
 
 
 def runtime_value_box(value, *, name=None, cod=None):
@@ -75,7 +99,7 @@ class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
         metaprog_core.Specializer.__init__(
             self,
             dom=computer.Category(),
-            cod=python.Category(),
+            cod=partial_category.Category(),
         )
 
     def _identity_object(self, ob):
@@ -88,8 +112,7 @@ class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
         if name == "rc":
             return int
         if name in ("sh", "python"):
-            from collections.abc import Callable
-            return Callable
+            return object
         return object
 
     def _is_evaluator_box(self, box):
@@ -104,7 +127,7 @@ class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
 
     def map_computation(self, box, dom, cod):
         if self._is_evaluator_box(box):
-            return python.Function(uev, dom, cod)
+            return partial_category.PartialArrow(uev, dom, cod)
         return None
 
     def _identity_arrow(self, box):
@@ -119,7 +142,7 @@ class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
             return metaprog_core.Specializer.specialize(self, other)
         dom, cod = self(other.dom), self(other.cod)
         if other.dom == computer.Ty() and other.cod == program_ty:
-            return python.Function(lambda: pev, dom, cod)
+            return partial_category.PartialArrow(partial(_return_value, pev), dom, cod)
         raise TypeError(f"unsupported Python specializer box: {other!r}")
 
     def interpret(self, other):
@@ -127,7 +150,7 @@ class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
             return metaprog_core.Interpreter.interpret(self, other)
         dom, cod = self(other.dom), self(other.cod)
         if other.dom == computer.Ty() and other.cod == program_ty:
-            return python.Function(lambda: uev, dom, cod)
+            return partial_category.PartialArrow(partial(_return_value, uev), dom, cod)
         raise TypeError(f"unsupported Python interpreter box: {other!r}")
 
 
@@ -138,7 +161,7 @@ class PythonDataServices(DataServiceFunctor):
         DataServiceFunctor.__init__(
             self,
             dom=computer.Category(),
-            cod=python.Category(),
+            cod=partial_category.Category(),
         )
 
     def object(self, ob):
@@ -151,23 +174,20 @@ class PythonDataServices(DataServiceFunctor):
         if name == "rc":
             return int
         if name in ("sh", "python"):
-            from collections.abc import Callable
-            return Callable
+            return object
         return object
 
     def copy_ar(self, dom, cod):
-        return python.Function.copy(dom, n=2)
+        return partial_category.PartialArrow.copy(dom, n=2)
 
     def delete_ar(self, dom, cod):
-        return python.Function.discard(dom)
+        return partial_category.PartialArrow.discard(dom)
 
     def swap_ar(self, left, right, dom, cod):
         del dom, cod
-        return python.Function.swap(left, right)
+        return partial_category.PartialArrow.swap(left, right)
 
     def data_ar(self, box, dom, cod):
         if isinstance(box, computer.Box) and box.dom == computer.Ty() and hasattr(box, "value"):
-            return python.Function(partial(_constant, box.value), dom, cod)
+            return partial_category.PartialArrow(partial(_constant, box.value), dom, cod)
         raise TypeError(f"unsupported Python data-service box: {box!r}")
-
-

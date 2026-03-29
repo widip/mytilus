@@ -58,11 +58,11 @@ We present DisCoRun, an implementation of the Monoidal Computer and Run language
 In our case study, we instantiate this evaluator for the POSIX Shell Command Language~\cite{posix-2024} using \texttt{subprocess.run}. In this interpretation, sequential composition (\texttt{>>}) realizes shell-style pipelines and monoidal tensor (\texttt{@}) models independent process branches. \texttt{Copy}, \texttt{Merge}, and \texttt{Trace} arise naturally from the monoidal computer representation, extending the Shell Command Language with primitive fan-out, fan-in, and feedback operators. The resulting system highlights the practical applications of categorical computability: developers can construct programs diagrammatically, analyze them compositionally, and translate them to a chosen target language.
 
 % We present an implementation of the Run language in DisCoPy, along side a practical universal evaluator for Operating System processes.
-% Following the theory of Programs as Diagrams, we write and publish a package 'discopy-computer', with the Computer, Program and Execution categories, Run morphism, and Compiler functor to move from an abstract program definition to a callable object in the category of Python functions provided by the framework.
+% Following the theory of Programs as Diagrams, we write and publish a package 'discopy-computer', with the Computer, Program and Execution categories, Run morphism, and Compiler functor to move from an abstract program definition to a partial object in the category of Python functions provided by the framework.
 
 % treating programs as topological string diagrams captures both composition and correctness.
 
-% The Compiler functor maps morphisms to operating-system subprocesses through a functor into \texttt{discopy.python.Function}, where \texttt{subprocess.run} acts as a universal evaluator. In this setting, vertical composition (\texttt{>>}) models Unix-style pipelines, while the monoidal tensor (\texttt{@}) models parallel subprocess execution.
+% The Compiler functor maps morphisms to operating-system subprocesses through Mytilus's typed partial category, where \texttt{functools.partial} supplies residual programs and \texttt{subprocess.run} acts as a universal evaluator. In this setting, vertical composition (\texttt{>>}) models Unix-style pipelines, while the monoidal tensor (\texttt{@}) models parallel subprocess execution.
 % Symmetry and trace operators encode feedback and cyclic pipelines, and explicit fan-out/fan-in combinators realize practical IO multiplexing via \texttt{tee} and \texttt{cat}.
 
 % The result is a compact bridge between the Monoidal Computer theory and the execution of Python programs using DisCoPy.

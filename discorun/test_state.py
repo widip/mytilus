@@ -1,5 +1,3 @@
-from discopy import python
-
 from discorun.comput import computer
 from discorun.comput.computer import Box, ComputableFunction, Computer, Copy, Program, ProgramTy, Ty
 from discorun.pcc.core import MonoidalComputer, ProgramClosedCategory
@@ -13,6 +11,7 @@ from discorun.state.core import (
     fixed_state,
     simulate,
 )
+from mytilus.wire import partial as partial_category
 
 
 X, Y, A, B = Ty("X"), Ty("Y"), Ty("A"), Ty("B")
@@ -22,7 +21,7 @@ H_ty, L_ty = ProgramTy("H"), ProgramTy("L")
 
 class DummyRunner(ProcessRunner):
     def __init__(self):
-        ProcessRunner.__init__(self, cod=python.Category())
+        ProcessRunner.__init__(self, cod=partial_category.Category())
 
     def object(self, ob):
         del ob
@@ -30,21 +29,21 @@ class DummyRunner(ProcessRunner):
 
     def process_ar_map(self, box, dom, cod):
         del box
-        return python.Function(lambda *_xs: None, dom, cod)
+        return partial_category.PartialArrow(lambda *_xs: None, dom, cod)
 
     def state_update_ar(self, dom, cod):
-        return python.Function(lambda state, _input: state, dom, cod)
+        return partial_category.PartialArrow(lambda state, _input: state, dom, cod)
 
     def output_ar(self, dom, cod):
-        return python.Function(lambda state, input_value: state(input_value), dom, cod)
+        return partial_category.PartialArrow(lambda state, input_value: state(input_value), dom, cod)
 
     def map_structural(self, box, dom, cod):
         if isinstance(box, Copy):
-            return python.Function(lambda value: (value, value), dom, cod)
+            return partial_category.PartialArrow(lambda value: (value, value), dom, cod)
         if isinstance(box, computer.Delete):
-            return python.Function(lambda _value: (), dom, cod)
+            return partial_category.PartialArrow(lambda _value: (), dom, cod)
         if isinstance(box, computer.Swap):
-            return python.Function(lambda left, right: (right, left), dom, cod)
+            return partial_category.PartialArrow(lambda left, right: (right, left), dom, cod)
         return None
 
 

@@ -1,5 +1,7 @@
 """Diagram tests for Sec. 6.2.2 and Futamura projections."""
 
+from functools import partial
+
 from discorun.comput import computer
 from discorun.metaprog import core as metaprog_core
 from discorun.state.core import InputOutputMap
@@ -13,6 +15,7 @@ from mytilus.metaprog import (
     PYTHON_RUNTIME,
     PYTHON_SPECIALIZER_BOX,
 )
+from mytilus.wire import partial as partial_category
 
 
 def closed_value(value, name, cod=comput_python.program_ty):
@@ -23,6 +26,16 @@ def closed_value(value, name, cod=comput_python.program_ty):
 
 def eval_closed(diagram):
     return PYTHON_RUNTIME(diagram)()
+
+
+def iter_partial_ast(term):
+    yield term
+    if isinstance(term, partial):
+        yield from iter_partial_ast(term.func)
+        for arg in term.args:
+            yield from iter_partial_ast(arg)
+        for value in (term.keywords or {}).values():
+            yield from iter_partial_ast(value)
 
 
 TEXTBOOK_PROJECTION_KW = {
@@ -151,6 +164,30 @@ def test_exported_compiler_and_generator_constants():
 
     assert compiler_value(source_program)(1) == 101
     assert compiler_generator_value(interpreter)(source_program)(1) == 101
+
+
+def test_functor_returns_partial_ast_for_supercompilation():
+    compiler_arrow = PYTHON_RUNTIME(PYTHON_COMPILER)
+    compiler_generator_arrow = PYTHON_RUNTIME(PYTHON_COMPILER_GENERATOR)
+
+    compiler_nodes = list(iter_partial_ast(compiler_arrow.inside))
+    generator_nodes = list(iter_partial_ast(compiler_generator_arrow.inside))
+
+    assert partial_category.is_partial_arrow(compiler_arrow)
+    assert partial_category.is_partial_arrow(compiler_generator_arrow)
+    assert isinstance(compiler_arrow.inside, partial)
+    assert isinstance(compiler_generator_arrow.inside, partial)
+    assert comput_python.pev in compiler_nodes
+    assert comput_python.uev in compiler_nodes
+    assert generator_nodes.count(comput_python.pev) >= 2
+
+    source_program = lambda runtime_input: runtime_input * 3
+    compiler_from_ast = compiler_arrow()
+    compiler_generator_from_ast = compiler_generator_arrow()
+    interpreter = eval_closed(PYTHON_INTERPRETER_BOX)
+
+    assert compiler_from_ast(source_program)(4) == 12
+    assert compiler_generator_from_ast(interpreter)(source_program)(4) == 12
 
 
 def test_sec_6_2_2_accepts_arbitrary_static_input_type():

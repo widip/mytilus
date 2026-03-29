@@ -8,7 +8,7 @@ def test_process_runner_output_projection_uses_uev():
     runner = ProcessRunner()
     output = runner.ar_map(state_core.InputOutputMap("{}", computer.ProgramTy("P"), computer.Ty("A"), computer.Ty("B")))
 
-    assert output(lambda value: value + 1, 2) == (3,)
+    assert output(lambda value: value + 1, 2) == 3
 
 
 def test_run_paths_uses_runtime_normalization_between_stages():

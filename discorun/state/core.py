@@ -1,6 +1,6 @@
 """Generic Chapter 7 stateful process structure."""
 
-from discopy import monoidal, python
+from discopy import monoidal
 
 from ..comput import computer
 from ..metaprog import core as metaprog_core
