@@ -10,6 +10,7 @@ PTY_TIMEOUT_SECONDS = 5.0
 
 def run_mytilus(*args, env):
     run_env = os.environ.copy()
+    run_env.pop("MYTILUS_TRACE", None)
     run_env.setdefault("MPLCONFIGDIR", "/tmp/mytilus-mpl")
     if env is not None:
         run_env.update(env)
@@ -25,6 +26,7 @@ def run_mytilus(*args, env):
 
 def run_mytilus_pty(*args, env):
     run_env = os.environ.copy()
+    run_env.pop("MYTILUS_TRACE", None)
     run_env.setdefault("MPLCONFIGDIR", "/tmp/mytilus-mpl")
     if env is not None:
         run_env.update(env)

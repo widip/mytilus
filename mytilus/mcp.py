@@ -12,20 +12,11 @@ import yaml
 import mytilus.state as mytilus_state
 from mytilus.files import source_diagram
 
-# Enable trace mode by default for all commands in this process.
-os.environ["MYTILUS_TRACE"] = "1"
+# Special logger for Mytilus tracing.
+trace_logger = logging.getLogger("mytilus.trace")
 
 # Setup logging
 logger = logging.getLogger("mytilus.mcp")
-
-# Special logger for Mytilus tracing.
-trace_logger = logging.getLogger("mytilus.trace")
-trace_logger.setLevel(logging.INFO)
-trace_logger.propagate = False
-if not trace_logger.handlers:
-    stderr_handler = logging.StreamHandler(sys.stderr)
-    stderr_handler.setLevel(logging.INFO)
-    trace_logger.addHandler(stderr_handler)
 
 mcp = FastMCP("Mytilus")
 
@@ -39,6 +30,18 @@ def run_mytilus(document: str) -> str:
     Args:
         document: The Mytilus YAML document to execute (e.g., '!echo hello').
     """
+    # Ensure trace mode is active for MCP tool invocations
+    os.environ.setdefault("MYTILUS_TRACE", "1")
+    
+    # Configure trace logger for MCP if not already configured.
+    # We do this here once to avoid global side-effects on import.
+    if not trace_logger.handlers:
+        trace_logger.setLevel(logging.INFO)
+        trace_logger.propagate = False
+        stderr_handler = logging.StreamHandler(sys.stderr)
+        stderr_handler.setLevel(logging.INFO)
+        trace_logger.addHandler(stderr_handler)
+
     logger.info(f"Executing Mytilus document: {document}")
     
     try:
