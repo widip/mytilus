@@ -20,3 +20,6 @@ dev = ["pytest"]
 [project.urls]
 "Source" = "https://github.com/colltoaction/mytilus"
 
+[project.scripts]
+mytilus = "mytilus.__main__:main"
+

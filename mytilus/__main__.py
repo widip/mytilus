@@ -108,8 +108,8 @@ def build_arguments(args):
     return args
 
 
-def main(argv):
-    args = build_arguments(argv[1:])
+def main():
+    args = build_arguments(sys.argv[1:])
     draw = args.draw
 
     logging.basicConfig(
@@ -129,4 +129,4 @@ def main(argv):
     sys.exit(run_requested_mode(args, draw))
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()
