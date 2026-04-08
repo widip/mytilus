@@ -101,8 +101,9 @@ def test_execute_shell_diagram_uses_terminal_passthrough_when_available(monkeypa
     monkeypatch.setattr(watch, "run_terminal_command", lambda command: seen.setdefault("argv", command.argv))
 
     result = watch.execute_shell_diagram(diagram, None)
-
-    assert result is None
+    
+    # Updated to expect status triple (stdout, rc, stderr) for passthrough commands.
+    assert result == ("", ("echo", "ok"), "")
     assert seen["argv"] == ("echo", "ok")
 
 

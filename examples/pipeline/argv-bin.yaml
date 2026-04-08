@@ -1,0 +1,3 @@
+#!/usr/bin/env mytilus
+
+!mybin.yaml { (ARG 1), (ARG 0) }

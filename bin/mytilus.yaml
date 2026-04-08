@@ -1,2 +1,2 @@
-#!bin/mytilus
+#!/usr/bin/env mytilus
 !xargs { exec, python, -m, mytilus }

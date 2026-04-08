@@ -24,6 +24,7 @@ from ..wire import shell as shell_wire
 from .python import ProcessRunner
 from discorun.comput import boxes as discorun_comput_boxes
 import os
+import re
 import sys
 
 # Public API alignment for tests/legacy code
@@ -462,14 +463,26 @@ def terminal_passthrough_command(diagram):
     return None
 
 
+def map_argv(argv):
+    """Resolve argument placeholders like (ARG 0) to actual sys.argv values for terminal passthrough."""
+    for arg in argv:
+        match = re.match(r"^\(ARG (\d+)\)$", arg)
+        if match:
+            # Shift by 2 to skip ['mytilus', 'file.yaml'] in the process argv
+            i = int(match.group(1)) + 2
+            yield sys.argv[i] if i < len(sys.argv) else ""
+        else:
+            yield arg
+
 def run_terminal_command(program: shell_lang.Command):
     """Run one shell command attached directly to the current terminal."""
     argv = _resolve_terminal_passthrough_argv(program.argv)
     if argv is None:
         raise TypeError(f"terminal passthrough requires plain argv: {program.argv!r}")
+    argv = list(map_argv(argv))
     completed = subprocess.run(
         argv,
-        check=True,
+        check=False,
     )
     return completed.returncode
 

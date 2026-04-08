@@ -1,6 +1,8 @@
 import os
+import sys
 import subprocess
 import logging
+import re
 import shlex
 
 from discorun.comput import computer
@@ -54,11 +56,24 @@ class Command(ShellProgram):
         ShellProgram.__init__(self, repr(self.argv))
 
 
+def map_argv(argv):
+    """Resolve argument placeholders like (ARG 0) to actual sys.argv values."""
+    for arg in argv:
+        match = re.match(r"^\(ARG (\d+)\)$", arg)
+        if match:
+            # Shift by 2 to skip ['mytilus', 'file.yaml'] in the process argv
+            i = int(match.group(1)) + 2
+            yield sys.argv[i] if i < len(sys.argv) else ""
+        else:
+            yield arg
+
 def subprocess_run(argv, prev_stdout, prev_rc, prev_stderr):
     """Hardened subprocess execution with status-triple propagation."""
     # Status-triple hardening: skip and propagate if previous command failed.
     if prev_rc != 0:
         return (prev_stdout, prev_rc, prev_stderr)
+
+    argv = list(map_argv(argv))
     trace_logger = logging.getLogger("mytilus.trace")
     if os.getenv("MYTILUS_TRACE") == "1":
         trace_logger.info(f"+ {shlex.join(argv)}")

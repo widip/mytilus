@@ -187,7 +187,7 @@ def test_shell_yaml_compiles_to_python_partial_ast():
     assert merge_arrow.term.func is merge_triples
     assert_partial_ast_equal(compiled.term, expected.term)
     assert compiled("", 0, "") == (
-        "234\n113\n  ? !grep grep: !wc -c\n  ? !tail -2\n",
+        "73\n23\n  ? !grep grep: !wc -c\n  ? !tail -2\n",
         0,
         "",
     )

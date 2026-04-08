@@ -17,11 +17,12 @@ Smalltalk|Object
 
 # Installation
 
-`mytilus` can be installed via [pip](https://pypi.org/project/mytilus/) and run from the command line as follows:
+`mytilus` can be installed via [pip](https://pypi.org/project/mytilus/) and run from the command line. We recommend setting up a virtual environment such as with [`venv`](https://docs.python.org/3/library/venv.html):
 
 ```bash
-pip install mytilus
-python -m mytilus
+python3 -m venv .venv
+.venv/bin/pip install -e .
+.venv/bin/mytilus
 ```
 
 This will automatically install dependencies: [discopy](https://pypi.org/project/discopy/) (computing, drawing), [pyyaml](https://pypi.org/project/pyyaml/) (parser library), and [watchdog](https://pypi.org/project/watchdog/) (filesystem watcher).

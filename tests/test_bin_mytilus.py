@@ -15,7 +15,7 @@ def run_mytilus(*args, env):
     if env is not None:
         run_env.update(env)
     return subprocess.run(
-        ["bin/mytilus", *args],
+        [".venv/bin/mytilus", *args],
         text=True,
         capture_output=True,
         check=False,
@@ -33,7 +33,7 @@ def run_mytilus_pty(*args, env):
 
     master_fd, slave_fd = pty.openpty()
     process = subprocess.Popen(
-        ["bin/mytilus", *args],
+        [".venv/bin/mytilus", *args],
         stdin=slave_fd,
         stdout=slave_fd,
         stderr=slave_fd,
@@ -211,3 +211,44 @@ def test_bin_mytilus_repl_ctrl_c_interrupts_current_document_and_recovers():
         if process.poll() is None:
             process.kill()
             process.wait()
+
+
+def test_example_pipeline_scoping_and_imports():
+    """
+    Test that Mytilus can resolve sibling YAML tools via the automated script-local PATH.
+    The chain is: argv-example.yaml -> argv-bin.yaml -> mybin.yaml -> !echo.
+    """
+    # Run the top-level example from the repository root.
+    # bin/mytilus adds bin/ to PATH.
+    # examples/pipeline/argv-example.yaml adds examples/pipeline/ to PATH.
+    result = run_mytilus("examples/pipeline/argv-example.yaml", "Alpha", "Beta", env=None)
+    
+    assert result.returncode == 0
+    # mybin.yaml effectively ignores arguments and prints the constant "Hello World!"
+    assert result.stdout.strip() == "Hello World!"
+
+
+def test_example_pipeline_missing_args_resolved_to_empty_string():
+    """
+    Test that missing (ARG n) placeholders are handled gracefully (empty string) 
+    instead of causing an IndexError.
+    """
+    # Providing no arguments to a script that expects ARG 0 and ARG 1
+    result = run_mytilus("examples/pipeline/argv-example.yaml", env=None)
+    
+    assert result.returncode == 0
+    assert result.stdout.strip() == "Hello World!"
+
+
+def test_path_resolution_for_local_tools_in_subdirectories():
+    """
+    Test that running a script from a different directory (the root)
+    successfully resolves its local sibling tools.
+    """
+    # Specifically call argv-bin.yaml directly from the root.
+    # It should find its sibling mybin.yaml even though bin/ is the only relative directory in the wrapper's PATH.
+    # The fix in mytilus_main() prepends the script's directory (examples/pipeline/) to the PATH.
+    result = run_mytilus("examples/pipeline/argv-bin.yaml", "A", "B", env=None)
+    
+    assert result.returncode == 0
+    assert result.stdout.strip() == "Hello World!"

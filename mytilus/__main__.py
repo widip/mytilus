@@ -3,9 +3,10 @@ import argparse
 import logging
 import os
 import tempfile
+import pathlib
 
 
-DEFAULT_SHELL_SOURCE = "bin/yaml/shell.yaml"
+DEFAULT_SHELL_SOURCE = pathlib.Path("bin/yaml/shell.yaml")
 
 
 def configure_matplotlib_cache():
@@ -26,12 +27,9 @@ from .watch import shell_main, mytilus_main, mytilus_source_main
 
 
 def launch_shell(draw, watch):
-    if not os.path.exists(DEFAULT_SHELL_SOURCE):
-        # Ensure the directory exists if we want to support creating the file,
-        # but for now let's just use a fallback or ensure it doesn't crash.
-        # The current shell_main will try to read it.
-        os.makedirs(os.path.dirname(DEFAULT_SHELL_SOURCE), exist_ok=True)
-        with open(DEFAULT_SHELL_SOURCE, 'w') as f:
+    if not DEFAULT_SHELL_SOURCE.exists():
+        DEFAULT_SHELL_SOURCE.parent.mkdir(exist_ok=True)
+        with DEFAULT_SHELL_SOURCE.open('w') as f:
             f.write("# Mytilus default shell source\n")
     shell_main(DEFAULT_SHELL_SOURCE, draw, watch)
 
@@ -101,6 +99,7 @@ def build_arguments(args):
         nargs="?",
         help="The yaml file to run, if not provided it will start a shell"
     )
+    parser.add_argument("subprocess_argv", nargs=argparse.REMAINDER)
     parser.set_defaults(draw=False)
     args = parser.parse_args(args)
     if args.command_text is not None and args.file_name is not None:
@@ -109,6 +108,19 @@ def build_arguments(args):
 
 
 def main():
+    # 1. Binary Scoping: Prepend the directory of the mytilus executable to PATH.
+    # This allows mytilus to find itself if it was called by full path.
+    bin_ptr = sys.argv[0]
+    bin_dir = os.path.dirname(os.path.abspath(bin_ptr))
+    os.environ["PATH"] = f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}"
+
+    # 1b. Project bin/ Scoping: If the mytilus package is running from a source checkout,
+    # ensure the repository's bin/ directory is in the PATH to find local YAML tools.
+    package_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_bin = os.path.join(package_root, "bin")
+    if os.path.isdir(repo_bin):
+        os.environ["PATH"] = f"{repo_bin}{os.pathsep}{os.environ.get('PATH', '')}"
+
     args = build_arguments(sys.argv[1:])
     draw = args.draw
 
@@ -120,13 +132,19 @@ def main():
     if args.trace:
         os.environ["MYTILUS_TRACE"] = "1"
 
+    # 2. Prepend the directory of the YAML file being executed to PATH.
+    # This allows sibling YAML "binaries" to be resolved by name.
+    if args.file_name:
+        script_dir = os.path.dirname(os.path.abspath(args.file_name))
+        os.environ["PATH"] = f"{script_dir}{os.pathsep}{os.environ.get('PATH', '')}"
+
     logging.debug(f'running "{args.file_name}" file with draw={draw} watch={args.watch}')
     if interactive_followup_requested(args):
         run_requested_mode(args, draw)
         launch_shell(draw, args.watch)
         return
 
-    sys.exit(run_requested_mode(args, draw))
+    return run_requested_mode(args, draw)
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -37,8 +37,8 @@ def execute_shell_diagram(diagram, stdin_text: str | None):
     if has_interactive_terminal() and stdin_text is None:
         command = terminal_passthrough_command(diagram)
         if command is not None:
-            run_terminal_command(command)
-            return None
+             rc = run_terminal_command(command)
+             return ("", rc, "")
 
     # Normal execution: captured output for tests or script usage.
     runner = mytilus_state.SHELL_INTERPRETER(diagram)
@@ -58,19 +58,19 @@ def emit_mytilus_result(run_res) -> int:
     with open("mytilus.log", "a") as log:
         for res in results:
             for value in mytilus_state.runtime_values(res):
-                if not isinstance(value, tuple) or len(value) != 3:
-                    # Non-triple values (e.g. from pure Python boxes) emit as-is.
+                if isinstance(value, tuple) and len(value) == 3:
+                    # Hardened status triples: (stdout, rc, stderr)
+                    stdout, rc, stderr = value
+                    sys.stdout.write(stdout)
+                    log.write(stdout)
+                    if stderr:
+                        sys.stderr.write(stderr)
+                    exit_code = rc
+                elif value is not None:
+                    # Fallback for plain Python objects or return values.
                     text = str(value)
                     sys.stdout.write(text)
                     log.write(text)
-                    continue
-
-                stdout, rc, stderr = value
-                sys.stdout.write(stdout)
-                log.write(stdout)
-                if stderr:
-                    sys.stderr.write(stderr)
-                exit_code = rc
     sys.stdout.flush()
     return exit_code
 
@@ -177,6 +177,7 @@ def shell_main(file_name, draw, watch=False):
     raise SystemExit(0)
 
 def mytilus_main(file_name, draw):
+    """Main entry point for running a Mytilus file."""
     fd = file_diagram(file_name)
     path = Path(file_name)
     if draw:

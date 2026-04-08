@@ -1,0 +1,2 @@
+? !examples/pipeline/hello-bin.yaml
+? !examples/pipeline/dup-argv-bin.yaml World
