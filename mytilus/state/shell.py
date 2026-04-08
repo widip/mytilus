@@ -99,12 +99,12 @@ class SubstitutionParallel:
         self.branches = tuple(branches)
 
 
-def _resolve_command_substitution(argument, stdin: str) -> str:
+def _resolve_command_substitution(argument, stdin: str, script_args) -> str:
     """Evaluate one command-substitution argument."""
     if isinstance(argument, (shell_lang.Command, SubstitutionPipeline, SubstitutionParallel, metaprog_shell.Pipeline, metaprog_shell.Parallel)):
         # Shell command substitution strips trailing newlines.
         # Passing (stdin, 0, "") as 3 separate wires.
-        result = _compile_shell_program(argument)(stdin, 0, "")
+        result = _compile_shell_program(argument, script_args)(stdin, 0, "")
         return result[0].rstrip("\n")
     if hasattr(argument, "text"):
         return str(argument.text)
@@ -115,9 +115,9 @@ def _resolve_command_substitution(argument, stdin: str) -> str:
     return str(argument)
 
 
-def _resolve_command_argv(argv, stdin: str) -> tuple[str, ...]:
+def _resolve_command_argv(argv, stdin: str, script_args) -> tuple[str, ...]:
     """Resolve a shell command argv tuple to plain subprocess arguments."""
-    return tuple(_resolve_command_substitution(argument, stdin) for argument in argv)
+    return tuple(_resolve_command_substitution(argument, stdin, script_args) for argument in argv)
 
 
 def _resolve_terminal_passthrough_argument(argument):
@@ -201,7 +201,8 @@ class ShellRuntime(metaprog_core.Interpreter):
 class ShellToPythonProgram(state_core.ProcessSimulation):
     """Principled simulation from shell diagrams to Python programs."""
 
-    def __init__(self):
+    def __init__(self, script_args):
+        self.script_args = tuple(script_args)
         state_core.ProcessSimulation.__init__(
             self,
             source=mytilus_pcc.SHELL,
@@ -242,11 +243,12 @@ class ShellToPythonProgram(state_core.ProcessSimulation):
             if isinstance(item, shell_lang.Command):
                 argv = item.argv
                 from ..comput.shell import subprocess_run
+                script_args = self.script_args
 
                 def command_partial(stdout, v_rc=0, v_stderr="", **kwargs):
-                    resolved_argv = _resolve_command_argv(argv, stdout)
+                    resolved_argv = _resolve_command_argv(argv, stdout, script_args)
                     try:
-                        res = subprocess_run(resolved_argv, stdout, v_rc, v_stderr)
+                        res = subprocess_run(resolved_argv, stdout, v_rc, v_stderr, script_args=script_args)
                         return res
                     except Exception as e:
                         return stdout, 1, str(e)
@@ -256,7 +258,7 @@ class ShellToPythonProgram(state_core.ProcessSimulation):
                     name=item.name,
                     cod=PYTHON_PCC.program_ty,
                 )
-            
+
             val = item.value if hasattr(item, "value") else ""
             def print_literal(stdout, v_rc=0, v_stderr="", **kwargs):
                 return (val, v_rc, v_stderr)
@@ -270,6 +272,7 @@ class ShellToPythonProgram(state_core.ProcessSimulation):
         if isinstance(item, metaprog_shell.Parallel):
             n = len(item.branches)
             unit = self.simulation(item.branches[0].dom)
+            from ..wire import shell as mytilus_wire
             copy = mytilus_wire.Copy(n, unit)
             branches = monoidal.Diagram.tensor(*(self(b) for b in item.branches))
             merge = mytilus_wire.Merge(n, self.simulation(item.branches[0].cod))
@@ -284,17 +287,20 @@ class ShellToPythonProgram(state_core.ProcessSimulation):
 
         return item
 
-def shell_program_runner(program):
+def shell_program_runner(program, script_args):
     """Principled wrapper for running a shell program via the unified interpreter."""
     if isinstance(program, (shell_lang.Empty, shell_lang.Literal, shell_lang.Command)):
-        mapped = ShellToPythonProgram()(program)
+        mapped = ShellToPythonProgram(script_args=script_args)(program)
         return partial_category.PartialArrow(
             mapped.boxes[0].value,
             dom=(str, int, str),
             cod=(str, int, str),
         )
-    from . import SHELL_INTERPRETER
-    return SHELL_INTERPRETER(program)
+    return ShellInterpreter(
+        ShellToPythonProgram(script_args=script_args),
+        ShellPythonRuntime(),
+        script_args=script_args
+    )(program)
 
 
 def _to_diagram(program):
@@ -309,20 +315,27 @@ def _to_diagram(program):
     return program
 
 
-def _compile_shell_program(program):
+def _compile_shell_program(program, script_args):
     """Principled helper to wrap and run a shell program via the unified interpreter."""
     program = _to_diagram(program)
 
-    import mytilus.state as mytilus_state
     if isinstance(program, computer.Diagram) and program.dom == shell_lang.io_ty and program.cod == shell_lang.io_ty:
         # Already a projected IO-to-IO diagram (e.g. from SubstitutionPipeline/Parallel).
-        return mytilus_state.SHELL_INTERPRETER(program)
+        return ShellInterpreter(
+            ShellToPythonProgram(script_args=script_args),
+            ShellPythonRuntime(),
+            script_args=script_args
+        )(program)
 
     # Ensure program is projected through the categorical shell execution model.
     # We use ShellExecution then project it to get the IO-to-IO map.
     exec_diag = ShellExecution()(program).output_diagram()
     # Apply the global interpreter to the projected diagram.
-    res = mytilus_state.SHELL_INTERPRETER(exec_diag)
+    res = ShellInterpreter(
+        ShellToPythonProgram(script_args=script_args),
+        ShellPythonRuntime(),
+        script_args=script_args
+    )(exec_diag)
     def status_triple_to_stdout(stdin):
         out = res(stdin)
         return out[0] if isinstance(out, tuple) and len(out) == 3 else out
@@ -332,9 +345,10 @@ def _compile_shell_program(program):
 class ShellInterpreter(ShellPythonDataServices, ProcessRunner, RunInterpreter):
     """Interpret shell diagrams as Python partial terms."""
 
-    def __init__(self, program_functor, python_runtime):
+    def __init__(self, program_functor, python_runtime, script_args):
         self.program_functor = program_functor
         self.python_runtime = python_runtime
+        self.script_args = tuple(script_args)
         ShellPythonDataServices.__init__(self)
         ProcessRunner.__init__(self)
 
@@ -355,6 +369,10 @@ class ShellInterpreter(ShellPythonDataServices, ProcessRunner, RunInterpreter):
         if not isinstance(lowered, computer.Diagram):
             lowered = computer.Diagram(lowered.inside, lowered.dom, lowered.cod)
         
+        # We pass the script_args to the program_functor if it's a ShellToPythonProgram.
+        if hasattr(self.program_functor, 'script_args'):
+            self.program_functor.script_args = self.script_args
+
         result = self.python_runtime(lowered)
         if (partial_category.is_partial_arrow(result) and len(result.dom) >= 3
             and result.dom[-3] is str and result.dom[-2] is int and result.dom[-1] is str):
@@ -463,23 +481,26 @@ def terminal_passthrough_command(diagram):
     return None
 
 
-def map_argv(argv):
-    """Resolve argument placeholders like (ARG 0) to actual sys.argv values for terminal passthrough."""
+def map_argv(argv, script_args):
+    """Resolve argument placeholders like (ARG 0) to actual script arguments for terminal passthrough."""
     for arg in argv:
+        if not isinstance(arg, str):
+            yield arg
+            continue
         match = re.match(r"^\(ARG (\d+)\)$", arg)
         if match:
-            # Shift by 2 to skip ['mytilus', 'file.yaml'] in the process argv
-            i = int(match.group(1)) + 2
-            yield sys.argv[i] if i < len(sys.argv) else ""
+            i = int(match.group(1))
+            yield script_args[i] if i < len(script_args) else ""
         else:
             yield arg
 
-def run_terminal_command(program: shell_lang.Command):
+
+def run_terminal_command(program: shell_lang.Command, script_args):
     """Run one shell command attached directly to the current terminal."""
     argv = _resolve_terminal_passthrough_argv(program.argv)
     if argv is None:
         raise TypeError(f"terminal passthrough requires plain argv: {program.argv!r}")
-    argv = list(map_argv(argv))
+    argv = list(map_argv(argv, script_args))
     completed = subprocess.run(
         argv,
         check=False,

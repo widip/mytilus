@@ -1,0 +1,11 @@
+!bash
+? -c
+? !printf
+  ? | 
+    if [ %s -gt 0 ]; then 
+      echo %s
+      ./.venv/bin/mytilus --no-draw examples/recursion/rec1.yaml $((%s - 1))
+    fi
+  ? (ARG 0)
+  ? (ARG 0)
+  ? (ARG 0)

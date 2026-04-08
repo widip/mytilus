@@ -26,24 +26,29 @@ def enable_diagram_drawing():
 from .watch import shell_main, mytilus_main, mytilus_source_main
 
 
-def launch_shell(draw, watch):
+def launch_shell(draw, watch, script_args):
     if not DEFAULT_SHELL_SOURCE.exists():
         DEFAULT_SHELL_SOURCE.parent.mkdir(exist_ok=True)
         with DEFAULT_SHELL_SOURCE.open('w') as f:
             f.write("# Mytilus default shell source\n")
-    shell_main(DEFAULT_SHELL_SOURCE, draw, watch)
+    shell_main(DEFAULT_SHELL_SOURCE, draw, watch, script_args=script_args)
 
 
 def run_requested_mode(args, draw):
-    if args.command_text is not None:
-        logging.debug("running inline command text")
-        return mytilus_source_main(args.command_text, draw)
-    elif args.file_name is None:
-        logging.debug("Starting shell")
-        launch_shell(draw, args.watch)
-        return 0
-    else:
-        return mytilus_main(args.file_name, draw)
+    if args.interactive and not args.command_text and not args.file_name:
+        return launch_shell(draw, args.watch, script_args=args.script_args)
+    if args.interactive:
+        # Run command then start shell.
+        if args.command_text:
+            mytilus_source_main(args.command_text, draw, script_args=args.script_args)
+        if args.file_name:
+            mytilus_main(args.file_name, draw, script_args=args.script_args)
+        return launch_shell(draw, args.watch, script_args=args.script_args)
+    if args.command_text:
+        return mytilus_source_main(args.command_text, draw, script_args=args.script_args)
+    if args.file_name:
+        return mytilus_main(args.file_name, draw, script_args=args.script_args)
+    return launch_shell(draw, args.watch, script_args=args.script_args)
 
 
 def interactive_followup_requested(args):
@@ -54,14 +59,15 @@ def build_arguments(args):
     parser = argparse.ArgumentParser(prog="mytilus")
 
     parser.add_argument(
-        "--draw",
-        action="store_true",
-        help="Draw JPG diagrams before running"
-    )
-    parser.add_argument(
         "-n", "--no-draw",
         dest="draw",
         action="store_false",
+        help="Skip SVG diagram rendering when loading a file"
+    )
+    parser.add_argument(
+        "--draw",
+        dest="draw",
+        action="store_true",
         help=argparse.SUPPRESS
     )
     parser.add_argument(
@@ -99,8 +105,8 @@ def build_arguments(args):
         nargs="?",
         help="The yaml file to run, if not provided it will start a shell"
     )
-    parser.add_argument("subprocess_argv", nargs=argparse.REMAINDER)
-    parser.set_defaults(draw=False)
+    parser.add_argument("script_args", nargs=argparse.REMAINDER)
+    parser.set_defaults(draw=True)
     args = parser.parse_args(args)
     if args.command_text is not None and args.file_name is not None:
         parser.error("cannot use -c/--command with a file name")

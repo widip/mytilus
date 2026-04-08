@@ -32,16 +32,21 @@ def has_interactive_terminal():
     return sys.stdin.isatty() and sys.stdout.isatty() and sys.stderr.isatty()
 
 
-def execute_shell_diagram(diagram, stdin_text: str | None):
+def execute_shell_diagram(diagram, stdin_text: str | None, script_args):
     # Terminal passthrough: check if this is a single command.
     if has_interactive_terminal() and stdin_text is None:
         command = terminal_passthrough_command(diagram)
         if command is not None:
-             rc = run_terminal_command(command)
-             return ("", rc, "")
+            rc = run_terminal_command(command, script_args=script_args)
+            return ("", rc, "")
 
     # Normal execution: captured output for tests or script usage.
-    runner = mytilus_state.SHELL_INTERPRETER(diagram)
+    from .state.shell import ShellInterpreter, ShellToPythonProgram, ShellPythonRuntime
+    runner = ShellInterpreter(
+        ShellToPythonProgram(script_args=script_args),
+        ShellPythonRuntime(),
+        script_args=script_args
+    )(diagram)
     # Call with 1-wire input to get 1-wire output (polymorphic runner).
     res = runner(stdin_text if stdin_text is not None else "")
     if isinstance(res, tuple) and len(res) == 2:
@@ -110,10 +115,11 @@ class StoppedObserver:
 class ShellSession:
     """State holder for one interactive mytilus shell session."""
 
-    def __init__(self, file_name, draw, watch, error_writer=None):
+    def __init__(self, file_name, draw, watch, script_args=(), error_writer=None):
         self.file_name = file_name
         self.draw = draw
         self.watch = watch
+        self.script_args = tuple(script_args)
         self.error_writer = sys.stderr.write if error_writer is None else error_writer
         self.observer = StoppedObserver()
 
@@ -127,7 +133,7 @@ class ShellSession:
         try:
             emit_shell_source(source)
             try:
-                run_shell_source(source, self.file_name, self.draw)
+                run_shell_source(source, self.file_name, self.draw, script_args=self.script_args)
             except yaml.YAMLError as exc:
                 self.error_writer(f"{exc.__class__.__name__}: {exc}\n")
         finally:
@@ -138,14 +144,14 @@ class ShellSession:
         self.observer = StoppedObserver()
 
 
-def run_shell_source(source, file_name, draw):
+def run_shell_source(source, file_name, draw, script_args):
     """Execute one mytilus document inside the interactive shell."""
     source_d = source_diagram(source)
     path = Path(file_name)
 
     if draw:
         diagram_draw(path, source_d)
-    res = execute_shell_diagram(source_d, None)
+    res = execute_shell_diagram(source_d, None, script_args=script_args)
     emit_mytilus_result(res)
     # Status-triple error propagation: raise error for the interactive runner to capture.
     if isinstance(res, tuple) and len(res) == 3 and res[1] != 0:
@@ -154,8 +160,8 @@ def run_shell_source(source, file_name, draw):
     return res
 
 
-def shell_main(file_name, draw, watch=False):
-    session = ShellSession(file_name, draw, watch)
+def shell_main(file_name, draw, watch, script_args):
+    session = ShellSession(file_name, draw, watch, script_args=script_args)
 
     def read_source(prompt):
         del prompt
@@ -176,22 +182,22 @@ def shell_main(file_name, draw, watch=False):
     print("⌁")
     raise SystemExit(0)
 
-def mytilus_main(file_name, draw):
+def mytilus_main(file_name, draw, script_args):
     """Main entry point for running a Mytilus file."""
     fd = file_diagram(file_name)
     path = Path(file_name)
     if draw:
         diagram_draw(path, fd)
 
-    run_res = execute_shell_diagram(fd, None) if has_interactive_terminal() else execute_shell_diagram(fd, sys.stdin.read())
+    run_res = execute_shell_diagram(fd, None, script_args=script_args) if has_interactive_terminal() else execute_shell_diagram(fd, sys.stdin.read(), script_args=script_args)
     return emit_mytilus_result(run_res)
 
 
-def mytilus_source_main(source, draw):
+def mytilus_source_main(source, draw, script_args):
     fd = source_diagram(source)
     path = Path("mytilus-command.yaml")
     if draw:
         diagram_draw(path, fd)
 
-    run_res = execute_shell_diagram(fd, None) if has_interactive_terminal() else execute_shell_diagram(fd, sys.stdin.read())
+    run_res = execute_shell_diagram(fd, None, script_args=script_args) if has_interactive_terminal() else execute_shell_diagram(fd, sys.stdin.read(), script_args=script_args)
     return emit_mytilus_result(run_res)

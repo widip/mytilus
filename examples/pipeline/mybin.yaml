@@ -1,0 +1,2 @@
+#!/usr/bin/env mytilus
+!echo { (ARG 0), (ARG 1) }

@@ -29,7 +29,7 @@ def assert_partial_ast_equal(actual, expected):
 def test_shell_specializer_box_lowering():
     shell_specializer = metaprog_core.SpecializerBox(shell_lang.shell_program_ty, name="shell_pev")
 
-    lowering = ShellToPythonProgram()
+    lowering = ShellToPythonProgram(script_args=[])
     lowered = lowering(shell_specializer)
 
     runtime = ShellPythonRuntime()
@@ -45,7 +45,7 @@ def test_shell_specializer_box_lowering():
 def test_shell_interpreter_box_lowering():
     shell_interpreter = metaprog_core.InterpreterBox(shell_lang.shell_program_ty, name="shell_uev")
 
-    lowering = ShellToPythonProgram()
+    lowering = ShellToPythonProgram(script_args=[])
     lowered = lowering(shell_interpreter)
 
     runtime = ShellPythonRuntime()
@@ -61,7 +61,7 @@ def test_shell_interpreter_box_lowering():
 def test_yaml_loaded_shell_program_compiles_to_python_partial_ast():
     yaml_text = Path("examples/hello-world.yaml").read_text()
     shell_program = LoaderToShell()(HIFToLoader()(nx_compose_all(yaml_text)))
-    lowered = ShellToPythonProgram()(shell_program)
+    lowered = ShellToPythonProgram(script_args=[])(shell_program)
     command_box, _ = lowered.boxes
 
     command_arrow = partial_category.PartialArrow(
@@ -128,7 +128,7 @@ def test_yaml_loaded_shell_program_compiles_to_python_partial_ast():
 def test_shell_yaml_compiles_to_python_partial_ast():
     yaml_text = Path("examples/shell.yaml").read_text()
     shell_program = LoaderToShell()(HIFToLoader()(nx_compose_all(yaml_text)))
-    lowered = ShellToPythonProgram()(shell_program)
+    lowered = ShellToPythonProgram(script_args=[])(shell_program)
     cat_box, _, _, _, wc_box, _, grep_box, _, wc_again_box, _, tail_box, _, _ = lowered.boxes
 
     triple = (str, int, str)

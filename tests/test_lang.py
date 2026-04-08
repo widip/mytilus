@@ -226,7 +226,7 @@ def test_shell_to_python_program_maps_shell_scalars_to_python_program_boxes():
         assert mapped.dom == Ty()
         assert mapped.cod == comput_python.program_ty
         actual_fn = mapped.boxes[0].value
-        assert actual_fn("stdin\n", 0, "") == shell_program_runner(source).term("stdin\n", 0, "")
+        assert actual_fn("stdin\n", 0, "") == shell_program_runner(source, script_args=[]).term("stdin\n", 0, "")
 
 
 def test_shell_to_python_program_maps_shell_evaluator_box():

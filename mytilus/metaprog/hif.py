@@ -25,11 +25,11 @@ def _mapping_key_command_arg(key_node):
         return key_node
     if not isinstance(key_node, LoaderScalar):
         return None
-    if not isinstance(key_node.value, str):
-        return None
     if key_node.tag is None:
+        if not isinstance(key_node.value, str):
+            return None
         return key_node.value
-    # Tagged scalar keys are command-substitution arguments.
+    # Tagged scalar keys (whether string or tuple argv) are command-substitution arguments.
     return LoaderScalar(key_node.value, key_node.tag)
 
 
@@ -37,17 +37,24 @@ def _mapping_command_args(entries):
     """Return argv pieces for tagged scalar mappings, else ``None``."""
     argv = []
     for key_node, value_node in entries:
-        if not isinstance(value_node, LoaderScalar) or value_node.tag is not None:
-            return None
         key_arg = _mapping_key_command_arg(key_node)
         if key_arg is None:
             return None
-        if not isinstance(value_node.value, str):
+
+        # Value can be a plain scalar (argument) or an identity (empty argument).
+        if value_node == loader_id():
+            val = ""
+        elif isinstance(value_node, LoaderScalar) and value_node.tag is None:
+            if not isinstance(value_node.value, str):
+                return None
+            val = value_node.value
+        else:
             return None
+
         if key_arg:
             argv.append(key_arg)
-        if value_node.value:
-            argv.append(value_node.value)
+        if val:
+            argv.append(val)
     return tuple(argv)
 
 

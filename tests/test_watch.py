@@ -98,9 +98,9 @@ def test_execute_shell_diagram_uses_terminal_passthrough_when_available(monkeypa
     seen = {}
 
     monkeypatch.setattr(watch, "has_interactive_terminal", lambda: True)
-    monkeypatch.setattr(watch, "run_terminal_command", lambda command: seen.setdefault("argv", command.argv))
+    monkeypatch.setattr(watch, "run_terminal_command", lambda command, script_args: seen.setdefault("argv", command.argv))
 
-    result = watch.execute_shell_diagram(diagram, None)
+    result = watch.execute_shell_diagram(diagram, None, script_args=())
     
     # Updated to expect status triple (stdout, rc, stderr) for passthrough commands.
     assert result == ("", ("echo", "ok"), "")
@@ -112,7 +112,7 @@ def test_execute_shell_diagram_keeps_structured_programs_captured(monkeypatch):
 
     monkeypatch.setattr(watch, "has_interactive_terminal", lambda: True)
 
-    assert watch.execute_shell_diagram(diagram, None) == ("2\n", 0, "")
+    assert watch.execute_shell_diagram(diagram, None, script_args=()) == ("2\n", 0, "")
 
 
 def test_terminal_passthrough_command_rejects_nested_command_substitution():
@@ -125,9 +125,9 @@ def test_execute_shell_diagram_keeps_nested_command_substitution_captured(monkey
     diagram = Command(["echo", Command(["printf", "ok"])]) @ io_ty >> SHELL.execution(io_ty, io_ty).output_diagram()
 
     monkeypatch.setattr(watch, "has_interactive_terminal", lambda: True)
-    monkeypatch.setattr(watch, "run_terminal_command", lambda command: pytest.fail(f"unexpected passthrough for {command.argv!r}"))
+    monkeypatch.setattr(watch, "run_terminal_command", lambda command, script_args: pytest.fail(f"unexpected passthrough for {command.argv!r}"))
 
-    assert watch.execute_shell_diagram(diagram, None) == ("ok\n", 0, "")
+    assert watch.execute_shell_diagram(diagram, None, script_args=()) == ("ok\n", 0, "")
 
 
 def test_shell_main_propagates_invalid_command_errors(monkeypatch, capsys):
@@ -142,7 +142,7 @@ def test_shell_main_propagates_invalid_command_errors(monkeypatch, capsys):
     monkeypatch.setattr(watch, "default_shell_source_reader", fake_read_line)
 
     with pytest.raises(subprocess.CalledProcessError):
-        watch.shell_main("bin/yaml/shell.yaml", draw=False)
+        watch.shell_main("bin/yaml/shell.yaml", draw=False, watch=False, script_args=())
 
     captured = capsys.readouterr()
 
@@ -163,7 +163,7 @@ def test_shell_main_reports_yaml_reader_errors_and_continues(monkeypatch, capsys
     monkeypatch.setattr(watch, "default_shell_source_reader", fake_read_line)
 
     with pytest.raises(SystemExit) as excinfo:
-        watch.shell_main("bin/yaml/shell.yaml", draw=False)
+        watch.shell_main("bin/yaml/shell.yaml", draw=False, watch=False, script_args=())
 
     captured = capsys.readouterr()
 

@@ -56,24 +56,34 @@ class Command(ShellProgram):
         ShellProgram.__init__(self, repr(self.argv))
 
 
-def map_argv(argv):
-    """Resolve argument placeholders like (ARG 0) to actual sys.argv values."""
+def map_argv(argv, script_args):
+    """Resolve ``(ARG n)`` placeholders in an argv tuple to script arguments.
+
+    Placeholders of the form ``(ARG n)`` (0-based) are mapped to ``script_args[n]``.
+
+    If the requested index is out of range (i.e., fewer arguments were passed),
+    the placeholder resolves to an empty string ``""`` rather than raising an error.
+    Non-placeholder tokens are passed through unchanged.
+    """
     for arg in argv:
+        if not isinstance(arg, str):
+            yield arg
+            continue
         match = re.match(r"^\(ARG (\d+)\)$", arg)
         if match:
-            # Shift by 2 to skip ['mytilus', 'file.yaml'] in the process argv
-            i = int(match.group(1)) + 2
-            yield sys.argv[i] if i < len(sys.argv) else ""
+            i = int(match.group(1))
+            yield script_args[i] if i < len(script_args) else ""
         else:
             yield arg
 
-def subprocess_run(argv, prev_stdout, prev_rc, prev_stderr):
+
+def subprocess_run(argv, prev_stdout, prev_rc, prev_stderr, script_args):
     """Hardened subprocess execution with status-triple propagation."""
     # Status-triple hardening: skip and propagate if previous command failed.
     if prev_rc != 0:
         return (prev_stdout, prev_rc, prev_stderr)
 
-    argv = list(map_argv(argv))
+    argv = list(map_argv(argv, script_args))
     trace_logger = logging.getLogger("mytilus.trace")
     if os.getenv("MYTILUS_TRACE") == "1":
         trace_logger.info(f"+ {shlex.join(argv)}")
