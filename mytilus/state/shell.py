@@ -103,9 +103,9 @@ def _resolve_command_substitution(argument, stdin: str, script_args) -> str:
     """Evaluate one command-substitution argument."""
     if isinstance(argument, (shell_lang.Command, SubstitutionPipeline, SubstitutionParallel, metaprog_shell.Pipeline, metaprog_shell.Parallel)):
         # Shell command substitution strips trailing newlines.
-        # Passing (stdin, 0, "") as 3 separate wires.
-        result = _compile_shell_program(argument, script_args)(stdin, 0, "")
-        return result[0].rstrip("\n")
+        # Passing the initial io triple as a single tuple.
+        result = _compile_shell_program(argument, script_args)(stdin)
+        return result[0].rstrip("\n") if isinstance(result, tuple) else result.rstrip("\n")
     if hasattr(argument, "text"):
         return str(argument.text)
     if hasattr(argument, "value") and not isinstance(argument, str):
@@ -149,11 +149,11 @@ def parallel_io_diagram(branches):
     return Parallel(branches)
 
 
-def shell_uev(function, *tri):
+def shell_uev(function, tri):
     """Apply one shell program closure to a status triple."""
-    v_stdin = tri[0]
-    v_rc = tri[1] if len(tri) > 1 else 0
-    v_stderr = tri[2] if len(tri) > 2 else ""
+    if not isinstance(tri, tuple):
+        tri = (tri, 0, "")
+    v_stdin, v_rc, v_stderr = tri[0], tri[1] if len(tri) > 1 else 0, tri[2] if len(tri) > 2 else ""
 
     if isinstance(function, tuple):
         from ..comput.shell import subprocess_run
@@ -161,18 +161,20 @@ def shell_uev(function, *tri):
         result = subprocess_run(function, v_stdin, v_rc, v_stderr)
         return result if isinstance(result, tuple) else (result, 0, "")
 
-    return function(v_stdin, v_rc=v_rc, v_stderr=v_stderr)
+    # Pass the triple as a single unit; functions accept (tri, **kwargs).
+    return function(tri)
 
 
 def merge_triples(*results):
-    """Merge one parallel family of status triples."""
+    """Merge one parallel family of status triples (each a single tuple)."""
     if not results:
         return ("", 0, "")
-    triples = [results[i:i+3] for i in range(0, len(results), 3)]
+    # Each element is a (stdout, rc, stderr) tuple from a single io wire.
+    triples = [r if isinstance(r, tuple) else (r, 0, "") for r in results]
     return (
-        "".join(triple[0] for triple in triples),
+        "".join(t[0] for t in triples),
         triples[-1][1],
-        "".join(triple[2] for triple in triples),
+        "".join(t[2] for t in triples),
     )
 
 
@@ -245,7 +247,10 @@ class ShellToPythonProgram(state_core.ProcessSimulation):
                 from ..comput.shell import subprocess_run
                 script_args = self.script_args
 
-                def command_partial(stdout, v_rc=0, v_stderr="", **kwargs):
+                def command_partial(tri, **kwargs):
+                    if not isinstance(tri, tuple):
+                        tri = (tri, 0, "")
+                    stdout, v_rc, v_stderr = tri[0], tri[1] if len(tri) > 1 else 0, tri[2] if len(tri) > 2 else ""
                     resolved_argv = _resolve_command_argv(argv, stdout, script_args)
                     try:
                         res = subprocess_run(resolved_argv, stdout, v_rc, v_stderr, script_args=script_args)
@@ -260,7 +265,11 @@ class ShellToPythonProgram(state_core.ProcessSimulation):
                 )
 
             val = item.value if hasattr(item, "value") else ""
-            def print_literal(stdout, v_rc=0, v_stderr="", **kwargs):
+            def print_literal(tri, **kwargs):
+                if not isinstance(tri, tuple):
+                    tri = (tri, 0, "")
+                v_rc = tri[1] if len(tri) > 1 else 0
+                v_stderr = tri[2] if len(tri) > 2 else ""
                 return (val, v_rc, v_stderr)
 
             return comput_python.runtime_value_box(
@@ -293,8 +302,8 @@ def shell_program_runner(program, script_args):
         mapped = ShellToPythonProgram(script_args=script_args)(program)
         return partial_category.PartialArrow(
             mapped.boxes[0].value,
-            dom=(str, int, str),
-            cod=(str, int, str),
+            dom=(tuple,),
+            cod=(tuple,),
         )
     return ShellInterpreter(
         ShellToPythonProgram(script_args=script_args),
@@ -374,32 +383,32 @@ class ShellInterpreter(ShellPythonDataServices, ProcessRunner, RunInterpreter):
             self.program_functor.script_args = self.script_args
 
         result = self.python_runtime(lowered)
-        if (partial_category.is_partial_arrow(result) and len(result.dom) >= 3
-            and result.dom[-3] is str and result.dom[-2] is int and result.dom[-1] is str):
-            # Polymorphic shell runner: handle stdin-only or full status triple for the IO part.
+        if (partial_category.is_partial_arrow(result) and len(result.dom) >= 1
+            and result.dom[-1] is tuple):
+            # Polymorphic shell runner: accept a single io tuple or a bare stdin string.
             def shell_run_polymorphic(*xs):
-                # Ensure the input is treated as a status triple.
+                # Normalise: accept a single tuple (io wire) or a bare string (stdin).
                 if not xs:
                     tri = ("", 0, "")
+                elif len(xs) == 1 and isinstance(xs[0], tuple):
+                    tri = xs[0]
                 elif len(xs) == 1:
                     tri = (xs[0], 0, "")
                 else:
                     tri = xs
-                
+
                 # result may expect shifted arguments if it's stateful (P x io).
-                if len(result.dom) > 3 and len(tri) == 3:
-                     # Stateful call with stdin only? (state, tri).
-                     res = result("", *tri)
-                     # Pack the status triple to return (state, (stdout, rc, stderr)).
-                     # cod may be 4 (P x io) or 3 (io).
-                     if len(result.cod) == 4:
-                         return (res[0], (res[1], res[2], res[3]))
-                     return res
-                
-                res = result(*tri)
-                # If result is stateful and we passed full state, pack it similarly.
-                if len(result.cod) == 4 and len(res) == 4:
-                    return (res[0], (res[1], res[2], res[3]))
+                if len(result.dom) > 1:
+                    # Stateful call: (program_value, io_triple).
+                    res = result("", tri)
+                    # cod may be (P, io) or (io,).
+                    if len(result.cod) == 2:
+                        return (res[0], res[1])
+                    return res
+
+                res = result(tri)
+                if len(result.cod) == 2 and isinstance(res, tuple) and len(res) == 2:
+                    return (res[0], res[1])
                 return res
             res_fun = partial_category.PartialArrow(shell_run_polymorphic, result.dom, result.cod)
             res_fun.type_checking = False
@@ -425,8 +434,8 @@ class ShellPythonRuntime(ShellPythonDataServices, ProcessRunner, comput_python.P
         self.object_interpreter = lambda runtime, ob: self.object(ob)
 
     def state_update_ar(self, dom, cod):
-        """Handle the identity program state update: P x A -> P."""
-        return partial_category.PartialArrow(lambda p, *tri: (p,), dom, cod)
+        """Handle the identity program state update: P x io -> P."""
+        return partial_category.PartialArrow(lambda p, tri: (p,), dom, cod)
 
     def output_ar(self, dom, cod):
         """Handle the 3->3 shell closure application: P x A -> B."""
@@ -445,8 +454,11 @@ class ShellPythonRuntime(ShellPythonDataServices, ProcessRunner, comput_python.P
             return partial_category.PartialArrow(lambda *t: t * n, dom, cod)
 
         if isinstance(box, wire_services.Swap) or (hasattr(box, "name") and box.name == "Swap"):
-            # Swap: (t1, t2) -> (t2, t1)
-            return partial_category.PartialArrow(lambda *t: t[3:] + t[:3], dom, cod)
+            # Swap: (t1, t2) -> (t2, t1) — one slot per io wire.
+            left_len = len(box.left) if hasattr(box, "left") else len(dom) // 2
+            return partial_category.PartialArrow(
+                lambda *t, _ll=left_len: t[_ll:] + t[:_ll], dom, cod
+            )
 
         # Let the base class handle standard Python runtime logic (Bubble, Function, etc.).
         return ProcessRunner.process_ar_map(self, box, dom, cod)

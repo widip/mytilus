@@ -115,10 +115,8 @@ class PythonComputations(metaprog_core.Specializer, metaprog_core.Interpreter):
         if isinstance(ob, type):
             return ob
         name = getattr(ob, "name", None)
-        if name in ("stdout", "stderr"):
-            return str
-        if name == "rc":
-            return int
+        if name == "io":
+            return tuple
         if name in ("sh", "python"):
             return object
         return object
@@ -193,10 +191,8 @@ class PythonDataServices(DataServiceFunctor):
         if isinstance(ob, type):
             return ob
         name = getattr(ob, "name", None)
-        if name in ("stdout", "stderr"):
-            return str
-        if name == "rc":
-            return int
+        if name == "io":
+            return tuple
         if name in ("sh", "python"):
             return object
         return object

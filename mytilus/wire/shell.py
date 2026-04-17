@@ -6,7 +6,7 @@ from discorun.wire.services import Copy as CopyService, Delete
 from discorun.wire.types import Id, Ty
 
 
-io_ty = Ty("stdout") @ Ty("rc") @ Ty("stderr")
+io_ty = Ty("io")
 
 
 def io_wires(n: int):

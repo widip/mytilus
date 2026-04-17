@@ -210,7 +210,7 @@ class ProcessSimulation(RunSpecializer):
                 head, tail = item[:1], item[1:]
                 if head[0] == self.source.program_ty[0]:
                     return self.target.program_ty @ self.simulation(tail)
-                if head[0].name in ("stdout", "rc", "stderr"):
+                if head[0].name == "io":
                     return head @ self.simulation(tail)
                 return self.source.simulate(item, self.target)
             return item

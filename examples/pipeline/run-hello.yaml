@@ -1,2 +1,2 @@
-? !tests/yaml/hello-bin.yaml
+? !examples/pipeline/hello-bin.yaml
 ? " World!"
