@@ -56,25 +56,21 @@ class Command(ShellProgram):
         ShellProgram.__init__(self, repr(self.argv))
 
 
+def resolve_placeholder(arg, script_args):
+    """Resolve a single ``(ARG n)`` placeholder to its script argument."""
+    if not isinstance(arg, str):
+        return arg
+    match = re.match(r"^\(ARG (\d+)\)$", arg)
+    if match:
+        i = int(match.group(1))
+        return script_args[i] if i < len(script_args) else ""
+    return arg
+
+
 def map_argv(argv, script_args):
-    """Resolve ``(ARG n)`` placeholders in an argv tuple to script arguments.
-
-    Placeholders of the form ``(ARG n)`` (0-based) are mapped to ``script_args[n]``.
-
-    If the requested index is out of range (i.e., fewer arguments were passed),
-    the placeholder resolves to an empty string ``""`` rather than raising an error.
-    Non-placeholder tokens are passed through unchanged.
-    """
+    """Resolve ``(ARG n)`` placeholders in an argv tuple to script arguments."""
     for arg in argv:
-        if not isinstance(arg, str):
-            yield arg
-            continue
-        match = re.match(r"^\(ARG (\d+)\)$", arg)
-        if match:
-            i = int(match.group(1))
-            yield script_args[i] if i < len(script_args) else ""
-        else:
-            yield arg
+        yield resolve_placeholder(arg, script_args)
 
 
 def subprocess_run(argv, prev_stdout, prev_rc, prev_stderr, script_args):

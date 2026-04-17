@@ -107,12 +107,12 @@ def _resolve_command_substitution(argument, stdin: str, script_args) -> str:
         result = _compile_shell_program(argument, script_args)(stdin)
         return result[0].rstrip("\n") if isinstance(result, tuple) else result.rstrip("\n")
     if hasattr(argument, "text"):
-        return str(argument.text)
+        return shell_lang.resolve_placeholder(str(argument.text), script_args)
     if hasattr(argument, "value") and not isinstance(argument, str):
-        return str(argument.value)
+        return shell_lang.resolve_placeholder(str(argument.value), script_args)
     if isinstance(argument, shell_lang.Empty) or (hasattr(argument, "name") and argument.name == "''"):
         return ""
-    return str(argument)
+    return shell_lang.resolve_placeholder(str(argument), script_args)
 
 
 def _resolve_command_argv(argv, stdin: str, script_args) -> tuple[str, ...]:
@@ -270,7 +270,9 @@ class ShellToPythonProgram(state_core.ProcessSimulation):
                     tri = (tri, 0, "")
                 v_rc = tri[1] if len(tri) > 1 else 0
                 v_stderr = tri[2] if len(tri) > 2 else ""
-                return (val, v_rc, v_stderr)
+                # Replace placeholders even in top-level literals.
+                resolved_val = shell_lang.resolve_placeholder(val, self.script_args)
+                return (resolved_val, v_rc, v_stderr)
 
             return comput_python.runtime_value_box(
                 print_literal,
