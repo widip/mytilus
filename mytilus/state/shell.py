@@ -373,8 +373,11 @@ class ShellInterpreter(ShellPythonDataServices, ProcessRunner, RunInterpreter):
         if (type(other) is monoidal.Diagram):
             return self.python_runtime(other)
 
+        # Specialization: ensure bubbles are lowered to primitive components before simulation.
+        specialized = ShellSpecializer()(other)
+
         # Lowering: simulate then interpret.
-        lowered = self.program_functor(other)
+        lowered = self.program_functor(specialized)
         if not isinstance(lowered, computer.Diagram):
             lowered = computer.Diagram(lowered.inside, lowered.dom, lowered.cod)
         
@@ -466,6 +469,7 @@ class ShellPythonRuntime(ShellPythonDataServices, ProcessRunner, comput_python.P
 
 def terminal_passthrough_command(diagram):
     """Return the top-level command when one command can own the terminal."""
+    diagram = ShellSpecializer()(diagram)
     if not hasattr(diagram, "inside"):
         return None
 

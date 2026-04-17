@@ -36,7 +36,9 @@ def files_ar(ar: Box) -> Diagram:
         return ar
 
 def stream_diagram(stream) -> Diagram:
-    return LoaderToShell()(HIFToLoader()(nx_compose_all(stream)))
+    mprog = LoaderToShell()(HIFToLoader()(nx_compose_all(stream)))
+    from .state.shell import ShellSpecializer
+    return ShellSpecializer()(mprog)
 
 
 def _inline_shell_diagram(source: str) -> Diagram | None:

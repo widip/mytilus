@@ -34,6 +34,7 @@ def has_interactive_terminal():
 
 def execute_shell_diagram(diagram, stdin_text: str | None, script_args):
     # Terminal passthrough: check if this is a single command.
+    # Note: terminal_passthrough_command and ShellInterpreter now handle specialization internally.
     if has_interactive_terminal() and stdin_text is None:
         command = terminal_passthrough_command(diagram)
         if command is not None:

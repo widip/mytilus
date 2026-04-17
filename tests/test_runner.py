@@ -40,14 +40,21 @@ def test_shell_runner_files(path, tmp_path):
 
     yaml_text = yaml_path.read_text()
     mprog = hif_to_loader(nx_compose_all(yaml_text))
-    prog = ShellSpecializer()(loader_to_shell(mprog))
+    loader_prog = loader_to_shell(mprog)
+    prog = ShellSpecializer()(loader_prog)
 
     actual_mprog_svg_path = tmp_path / f"{path.name}.mprog.svg"
     actual_prog_svg_path = tmp_path / f"{path.name}.prog.svg"
     
     from mytilus.files import diagram_draw
-    diagram_draw(actual_mprog_svg_path, mprog)
     diagram_draw(actual_prog_svg_path, prog)
+    # Draw the metaprogram directly (no specialization)
+    from mytilus.files import normalize_svg
+    mprog.draw(path=str(actual_mprog_svg_path),
+               textpad=(0.3, 0.1),
+               fontsize=12,
+               fontsize_types=8)
+    actual_mprog_svg_path.write_text(normalize_svg(actual_mprog_svg_path.read_text()))
 
     program = SHELL_INTERPRETER(prog)
 
