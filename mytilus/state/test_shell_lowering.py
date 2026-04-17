@@ -71,8 +71,8 @@ def test_yaml_loaded_shell_program_compiles_to_python_partial_ast():
     )
     output_arrow = partial_category.PartialArrow(
         shell_uev,
-        (object, str, int, str),
-        (str, int, str),
+        (object, tuple),
+        (tuple,),
     )
 
     runtime = ShellPythonRuntime()
@@ -83,7 +83,7 @@ def test_yaml_loaded_shell_program_compiles_to_python_partial_ast():
         partial(
             partial_category.then_term,
             partial(partial_category.identity_term),
-            (str, int, str),
+            (tuple,),
             partial(
                 partial_category.tensor_term,
                 partial(
@@ -97,10 +97,10 @@ def test_yaml_loaded_shell_program_compiles_to_python_partial_ast():
                 0,
                 (object,),
                 partial(partial_category.identity_term),
-                (str, int, str),
+                (tuple,),
             ),
         ),
-        (object, str, int, str),
+        (object, tuple),
         partial(
             partial_category.tensor_term,
             partial(
@@ -109,10 +109,10 @@ def test_yaml_loaded_shell_program_compiles_to_python_partial_ast():
                 0,
                 (),
                 output_arrow.term,
-                (str, int, str),
+                (tuple,),
             ),
-            4,
-            (str, int, str),
+            2,
+            (tuple,),
             partial(partial_category.identity_term),
             (),
         ),
@@ -122,7 +122,7 @@ def test_yaml_loaded_shell_program_compiles_to_python_partial_ast():
     assert command_arrow.term.func is comput_python.constant
     assert output_arrow.term.func is shell_uev
     assert_partial_ast_equal(compiled.term, expected)
-    assert compiled("", 0, "") == ("Hello world!\n", 0, "")
+    assert compiled(("", 0, "")) == ("Hello world!\n", 0, "")
 
 
 def test_shell_yaml_compiles_to_python_partial_ast():
@@ -131,10 +131,10 @@ def test_shell_yaml_compiles_to_python_partial_ast():
     lowered = ShellToPythonProgram(script_args=[])(shell_program)
     cat_box, _, _, _, wc_box, _, grep_box, _, wc_again_box, _, tail_box, _, _ = lowered.boxes
 
-    triple = (str, int, str)
+    triple = (tuple,)
     pair = triple + triple
     triple3 = pair + triple
-    io = partial_category.PartialArrow.id((str, int, str))
+    io = partial_category.PartialArrow.id((tuple,))
     output_arrow = partial_category.PartialArrow(
         shell_uev,
         (object,) + triple,
@@ -186,7 +186,7 @@ def test_shell_yaml_compiles_to_python_partial_ast():
     assert copy_arrow.term.func is comput_python.copy_op
     assert merge_arrow.term.func is merge_triples
     assert_partial_ast_equal(compiled.term, expected.term)
-    assert compiled("", 0, "") == (
+    assert compiled(("", 0, "")) == (
         "73\n23\n  ? !grep grep: !wc -c\n  ? !tail -2\n",
         0,
         "",

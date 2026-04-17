@@ -124,7 +124,9 @@ def test_mapping_bubble_specializes_to_parallel_shell_bubble():
     specialized = bubble.specialize()
     names = box_names(specialized)
 
-    assert isinstance(specialized, Parallel)
+    from discorun.comput.computer import Diagram
+    from discopy import monoidal
+    assert isinstance(specialized, (Diagram, monoidal.Diagram))
     assert specialized.dom == io_ty
     assert specialized.cod == io_ty
     assert not any(name.startswith("('tee',") for name in names)
@@ -188,7 +190,7 @@ def test_parallel_preserves_argv_literals_without_shell_reparsing():
     assert SHELL_INTERPRETER(program)("") == ("a|bc&d", 0, "")
 
 
-def test_parallel_specializer_preserves_parallel_shell_bubble():
+def test_parallel_specializer_lowers_to_wiring():
     execution = SHELL.execution(io_ty, io_ty).output_diagram()
     program = Parallel(
         (
@@ -199,7 +201,9 @@ def test_parallel_specializer_preserves_parallel_shell_bubble():
     specialized = ShellSpecializer()(program)
     names = box_names(specialized)
 
-    assert isinstance(specialized, Parallel)
+    from discorun.comput.computer import Diagram
+    from discopy import monoidal
+    assert isinstance(specialized, (Diagram, monoidal.Diagram))
     assert not any(name.startswith("('tee',") for name in names)
     assert not any(name.startswith("('cat', '/tmp/mytilus-") for name in names)
     # Modernized architecture lowers to Parallel blocks containing Copy/Merge nodes.

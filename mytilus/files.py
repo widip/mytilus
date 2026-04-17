@@ -88,7 +88,10 @@ def file_diagram(file_name) -> Diagram:
 def diagram_draw(path, fd):
     svg_path = path.with_suffix(".svg")
     fd.draw(path=str(svg_path),
-            textpad=(0.3, 0.1),
+            textpad=(0.5, 0.2),
             fontsize=12,
-            fontsize_types=8)
+            fontsize_types=8,
+            nodesize=3,
+            figsize=(10, 15),
+            aspect='auto')
     svg_path.write_text(normalize_svg(svg_path.read_text()))
