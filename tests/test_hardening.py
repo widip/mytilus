@@ -46,3 +46,16 @@ def test_pipeline_exit_code():
     result = run_mytilus("-c", "sh: [['ls', 'non_existent'], ['echo', 'should_not_run']]")
     assert result.returncode != 0
     assert "should_not_run" not in result.stdout
+
+
+def test_mapping_fail_fast():
+    # Mappings (?) should stop on error and not include subsequent branches in output
+    yaml_program = """
+? Hello
+? !bash { -c, "exit 42"}
+? World
+"""
+    result = run_mytilus("-c", yaml_program)
+    assert result.returncode == 42
+    assert "Hello" in result.stdout
+    assert "World" not in result.stdout

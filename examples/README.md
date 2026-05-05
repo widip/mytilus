@@ -19,7 +19,7 @@ $ python -m mytilus examples/shell.yaml
   ? !tail -2
 ```
 
-![IMG](shell.jpg)
+![IMG](shell.svg)
 
 
 # Working with the CLI

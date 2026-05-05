@@ -35,8 +35,12 @@ def files_ar(ar: Box) -> Diagram:
         print("is a dir")
         return ar
 
-def stream_diagram(stream) -> Diagram:
+def load_mprog(stream) -> Diagram:
     mprog = LoaderToShell()(HIFToLoader()(nx_compose_all(stream)))
+    return mprog
+
+def stream_diagram(stream) -> Diagram:
+    mprog = load_mprog(stream)
     from .state.shell import ShellSpecializer
     return ShellSpecializer()(mprog)
 
@@ -85,13 +89,20 @@ def file_diagram(file_name) -> Diagram:
         fd = stream_diagram(stream)
     return fd
 
-def diagram_draw(path, fd):
-    svg_path = path.with_suffix(".svg")
-    fd.draw(path=str(svg_path),
+def file_diagram_mprog(file_name) -> Diagram:
+    path = pathlib.Path(file_name)
+    with path.open() as stream:
+        fd = load_mprog(stream)
+    return fd
+
+def diagram_draw(path, fd, format="svg"):
+    out_path = path.with_suffix("." + format)
+    fd.draw(path=str(out_path),
             textpad=(0.5, 0.2),
             fontsize=12,
             fontsize_types=8,
             nodesize=3,
             figsize=(10, 15),
             aspect='auto')
-    svg_path.write_text(normalize_svg(svg_path.read_text()))
+    if format == "svg":
+        out_path.write_text(normalize_svg(out_path.read_text()))

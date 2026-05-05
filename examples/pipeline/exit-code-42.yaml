@@ -1,0 +1,3 @@
+!cat file.in:
+  ? !wc -c
+  ? !wc -l

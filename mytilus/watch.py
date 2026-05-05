@@ -4,7 +4,7 @@ import sys
 import mytilus.state as mytilus_state
 import yaml
 
-from .files import diagram_draw, file_diagram, source_diagram
+from .files import diagram_draw, file_diagram, source_diagram, file_diagram_mprog
 from .interactive import (
     CTRL_C,
     CTRL_D,
@@ -95,8 +95,7 @@ def watch_main():
             if event.src_path.endswith(".yaml"):
                 watch_log(f"reloading {event.src_path}")
                 fd = file_diagram(str(event.src_path))
-                diagram_draw(Path(event.src_path), fd)
-                diagram_draw(Path(event.src_path + ".2"), fd)
+                diagram_draw(Path(event.src_path), fd, format="svg")
 
     watch_log("watching for changes in current path")
     observer = Observer()
@@ -151,7 +150,7 @@ def run_shell_source(source, file_name, draw, script_args):
     path = Path(file_name)
 
     if draw:
-        diagram_draw(path, source_d)
+        diagram_draw(path, source_d, format=draw)
     res = execute_shell_diagram(source_d, None, script_args=script_args)
     emit_mytilus_result(res)
     # Status-triple error propagation: raise error for the interactive runner to capture.
@@ -185,10 +184,13 @@ def shell_main(file_name, draw, watch, script_args):
 
 def mytilus_main(file_name, draw, script_args):
     """Main entry point for running a Mytilus file."""
-    fd = file_diagram(file_name)
+    mprog = file_diagram_mprog(file_name)
     path = Path(file_name)
     if draw:
-        diagram_draw(path, fd)
+        diagram_draw(path, mprog, format=draw)
+
+    from .state.shell import ShellSpecializer
+    fd = ShellSpecializer()(mprog)
 
     run_res = execute_shell_diagram(fd, None, script_args=script_args) if has_interactive_terminal() else execute_shell_diagram(fd, sys.stdin.read(), script_args=script_args)
     return emit_mytilus_result(run_res)
@@ -198,7 +200,7 @@ def mytilus_source_main(source, draw, script_args):
     fd = source_diagram(source)
     path = Path("mytilus-command.yaml")
     if draw:
-        diagram_draw(path, fd)
+        diagram_draw(path, fd, format=draw)
 
     run_res = execute_shell_diagram(fd, None, script_args=script_args) if has_interactive_terminal() else execute_shell_diagram(fd, sys.stdin.read(), script_args=script_args)
     return emit_mytilus_result(run_res)

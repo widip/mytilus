@@ -44,6 +44,9 @@ class Literal(comput_boxes.Data, ScalarProgram):
         self.text = text
         comput_boxes.Data.__init__(self, P=shell_program_ty, value=text, name=repr(text))
 
+    def __repr__(self):
+        return repr(self.text)
+
     def partial_apply(self, program: "Command") -> "Command":
         return Command(program.argv + (self.text,))
 
@@ -53,7 +56,10 @@ class Command(ShellProgram):
 
     def __init__(self, argv):
         self.argv = tuple(argv)
-        ShellProgram.__init__(self, repr(self.argv))
+        ShellProgram.__init__(self, self.__repr__())
+
+    def __repr__(self):
+        return f"!{shlex.join(map(str, self.argv))}"
 
 
 def resolve_placeholder(arg, script_args):

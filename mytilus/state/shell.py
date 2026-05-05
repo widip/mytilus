@@ -171,10 +171,20 @@ def merge_triples(*results):
         return ("", 0, "")
     # Each element is a (stdout, rc, stderr) tuple from a single io wire.
     triples = [r if isinstance(r, tuple) else (r, 0, "") for r in results]
+    outputs = []
+    rc = 0
+    errs = []
+    for t in triples:
+        outputs.append(t[0])
+        errs.append(t[2])
+        rc = t[1]
+        if rc != 0:
+            break
+    
     return (
-        "".join(t[0] for t in triples),
-        triples[-1][1],
-        "".join(t[2] for t in triples),
+        "".join(outputs),
+        rc,
+        "".join(errs),
     )
 
 
@@ -269,6 +279,8 @@ class ShellToPythonProgram(state_core.ProcessSimulation):
                 if not isinstance(tri, tuple):
                     tri = (tri, 0, "")
                 v_rc = tri[1] if len(tri) > 1 else 0
+                if v_rc != 0:
+                    return tri
                 v_stderr = tri[2] if len(tri) > 2 else ""
                 # Replace placeholders even in top-level literals.
                 resolved_val = shell_lang.resolve_placeholder(val, self.script_args)

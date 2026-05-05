@@ -62,13 +62,18 @@ def build_arguments(args):
         "-n", "--no-draw",
         dest="draw",
         action="store_false",
-        help="Skip SVG diagram rendering when loading a file"
+        help="Skip diagram rendering when loading a file"
     )
     parser.add_argument(
         "--draw",
         dest="draw",
         action="store_true",
-        help=argparse.SUPPRESS
+        help="Enable diagram rendering when loading a file"
+    )
+    parser.add_argument(
+        "--format",
+        default="svg",
+        help="Diagram rendering format (default: svg)"
     )
     parser.add_argument(
         "-w", "--watch",
@@ -128,7 +133,7 @@ def main():
         os.environ["PATH"] = f"{repo_bin}{os.pathsep}{os.environ.get('PATH', '')}"
 
     args = build_arguments(sys.argv[1:])
-    draw = args.draw
+    draw = args.format if args.draw else False
 
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
